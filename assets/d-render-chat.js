@@ -204,8 +204,9 @@ function renderOutline(turns) {
     }
   }
 
-  // Load saved outline data
+  // Load saved outline data and comments
   const outlineData = loadOutlineData();
+  const commentsData = loadCommentsData();
 
   turns.forEach((turn, index) => {
     const item = document.createElement('div');
@@ -243,6 +244,24 @@ function renderOutline(turns) {
       e.stopPropagation();
     });
 
+    // Icons container
+    const iconsContainer = document.createElement('div');
+    iconsContainer.className = 'outline-icons';
+
+    // Comment icon
+    const commentIcon = document.createElement('button');
+    commentIcon.className = 'comment-icon';
+    const hasComment = commentsData[index] !== undefined && commentsData[index] !== null;
+    commentIcon.innerHTML = hasComment ? '💬' : '🗨️';
+    commentIcon.title = hasComment ? 'Edit comment' : 'Add comment';
+    if (hasComment) {
+      commentIcon.classList.add('has-comment');
+    }
+    commentIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showCommentEditor(turn, index);
+    });
+
     // Preview icon
     const previewIcon = document.createElement('button');
     previewIcon.className = 'preview-icon';
@@ -253,9 +272,43 @@ function renderOutline(turns) {
       showMessagePreview(turn, index);
     });
 
+    iconsContainer.appendChild(commentIcon);
+    iconsContainer.appendChild(previewIcon);
+
+    // Get comment view preference
+    const commentViewEmphasized = getCommentViewPreference();
+    
+    // Display comment if exists and view is emphasized (above label)
+    if (hasComment && commentViewEmphasized) {
+      const commentDisplay = document.createElement('div');
+      commentDisplay.className = 'comment-display comment-emphasized';
+      commentDisplay.textContent = commentsData[index];
+      
+      // Prevent click from bubbling to parent
+      commentDisplay.addEventListener('click', function(e) {
+        e.stopPropagation();
+      });
+      
+      item.appendChild(commentDisplay);
+    }
+    
     item.appendChild(label);
     item.appendChild(summary);
-    item.appendChild(previewIcon);
+    item.appendChild(iconsContainer);
+
+    // Display comment if exists and view is de-emphasized (below)
+    if (hasComment && !commentViewEmphasized) {
+      const commentDisplay = document.createElement('div');
+      commentDisplay.className = 'comment-display';
+      commentDisplay.textContent = commentsData[index];
+      
+      // Prevent click from bubbling to parent
+      commentDisplay.addEventListener('click', function(e) {
+        e.stopPropagation();
+      });
+      
+      item.appendChild(commentDisplay);
+    }
 
     // Click on the item (but not the summary) scrolls to turn only if preview panel is not open
     item.addEventListener('click', () => {
@@ -270,6 +323,175 @@ function renderOutline(turns) {
 }
 
 let currentPreviewIndex = null;
+
+/**
+ * Get comment view preference (true = emphasized/above, false = de-emphasized/below)
+ */
+function getCommentViewPreference() {
+  const saved = localStorage.getItem('commentViewEmphasized');
+  return saved === 'true'; // Default to false (de-emphasized)
+}
+
+/**
+ * Set comment view preference
+ */
+function setCommentViewPreference(emphasized) {
+  localStorage.setItem('commentViewEmphasized', emphasized ? 'true' : 'false');
+}
+
+/**
+ * Toggle comment view
+ */
+function toggleCommentView() {
+  const current = getCommentViewPreference();
+  setCommentViewPreference(!current);
+  
+  // Re-render outline to apply new view
+  if (turns.length > 0) {
+    renderOutline(turns);
+  }
+}
+
+/**
+ * Load comments data for the current chat
+ */
+function loadCommentsData() {
+  if (!currentChatId) return {};
+  
+  const commentsKey = `comments_${currentChatId}`;
+  const saved = localStorage.getItem(commentsKey);
+  
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to parse saved comments data:', e);
+      return {};
+    }
+  }
+  
+  return {};
+}
+
+/**
+ * Save comment for a specific turn
+ */
+function saveComment(turnIndex, comment) {
+  if (!currentChatId) return;
+  
+  const commentsKey = `comments_${currentChatId}`;
+  const commentsData = loadCommentsData();
+  
+  if (comment !== null && comment !== undefined && comment !== '') {
+    // Save comment as-is, preserving blank lines and whitespace
+    commentsData[turnIndex] = comment;
+  } else {
+    // Remove comment if truly empty
+    delete commentsData[turnIndex];
+  }
+  
+  localStorage.setItem(commentsKey, JSON.stringify(commentsData));
+  console.log(`Saved comment for turn ${turnIndex}`);
+  
+  // Re-render outline to update comment icon
+  renderOutline(turns);
+}
+
+/**
+ * Show comment editor for a turn
+ */
+function showCommentEditor(turn, index) {
+  // Remove any existing editor
+  const existingEditor = document.querySelector('.comment-editor');
+  if (existingEditor) {
+    existingEditor.remove();
+  }
+
+  const commentsData = loadCommentsData();
+  const currentComment = commentsData[index] || '';
+
+  // Create backdrop
+  const editor = document.createElement('div');
+  editor.className = 'comment-editor';
+  
+  // Create modal container
+  const modal = document.createElement('div');
+  modal.className = 'comment-editor-modal';
+  
+  const editorHeader = document.createElement('div');
+  editorHeader.className = 'comment-editor-header';
+  
+  const editorTitle = document.createElement('div');
+  editorTitle.className = 'comment-editor-title';
+  editorTitle.textContent = `Comment - ${turn.type === 'user' ? '👤 User' : '🤖 Assistant'} Turn ${index + 1}`;
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'comment-editor-close';
+  closeBtn.innerHTML = '✕';
+  closeBtn.title = 'Close';
+  closeBtn.addEventListener('click', () => editor.remove());
+  
+  editorHeader.appendChild(editorTitle);
+  editorHeader.appendChild(closeBtn);
+  
+  const editorBody = document.createElement('div');
+  editorBody.className = 'comment-editor-body';
+  
+  const textarea = document.createElement('textarea');
+  textarea.className = 'comment-textarea';
+  textarea.placeholder = 'Add your comment here...';
+  textarea.value = currentComment;
+  
+  editorBody.appendChild(textarea);
+  
+  const editorFooter = document.createElement('div');
+  editorFooter.className = 'comment-editor-footer';
+  
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'comment-save-btn';
+  saveBtn.textContent = '💾 Save';
+  saveBtn.addEventListener('click', () => {
+    saveComment(index, textarea.value);
+    editor.remove();
+  });
+  
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'comment-delete-btn';
+  deleteBtn.textContent = '🗑️ Delete';
+  deleteBtn.addEventListener('click', () => {
+    saveComment(index, '');
+    editor.remove();
+  });
+  
+  editorFooter.appendChild(deleteBtn);
+  editorFooter.appendChild(saveBtn);
+  
+  modal.appendChild(editorHeader);
+  modal.appendChild(editorBody);
+  modal.appendChild(editorFooter);
+  
+  editor.appendChild(modal);
+  document.body.appendChild(editor);
+  
+  // Focus textarea
+  textarea.focus();
+  
+  // Close on Escape key
+  const escapeHandler = (e) => {
+    if (e.key === 'Escape') {
+      editor.remove();
+      document.removeEventListener('keydown', escapeHandler);
+    }
+  };
+  document.addEventListener('keydown', escapeHandler);
+  
+  // Close on backdrop click
+  editor.addEventListener('click', (e) => {
+    if (e.target === editor) {
+      editor.remove();
+    }
+  });
+}
 
 /**
  * Show message preview in a docked bottom panel
@@ -459,7 +681,7 @@ function saveOutlineItem(turnIndex, text) {
 }
 
 /**
- * Reset ALL outline items to default text
+ * Reset ALL outline items to default text and remove all comments
  */
 function resetAllOutlineItems() {
   if (!currentChatId || turns.length === 0) return;
@@ -468,6 +690,11 @@ function resetAllOutlineItems() {
   const outlineKey = `outline_${currentChatId}`;
   localStorage.removeItem(outlineKey);
   console.log('Reset all outline items to defaults');
+  
+  // Clear all comments from localStorage
+  const commentsKey = `comments_${currentChatId}`;
+  localStorage.removeItem(commentsKey);
+  console.log('Removed all comments');
   
   // Re-render the outline with defaults (using existing turns data)
   renderOutline(turns);

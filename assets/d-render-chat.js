@@ -194,6 +194,19 @@ function renderOutline(turns) {
   const outlineContent = document.getElementById('outlineContent');
   outlineContent.innerHTML = '';
 
+  // Show or hide reset button based on whether there are turns
+  const resetControls = document.querySelector('.outline-reset-controls');
+  if (resetControls) {
+    if (turns.length > 0) {
+      resetControls.classList.add('visible');
+    } else {
+      resetControls.classList.remove('visible');
+    }
+  }
+
+  // Load saved outline data
+  const outlineData = loadOutlineData();
+
   turns.forEach((turn, index) => {
     const item = document.createElement('div');
     item.className = `outline-item ${turn.type}`;
@@ -204,12 +217,36 @@ function renderOutline(turns) {
 
     const summary = document.createElement('div');
     summary.className = 'outline-summary';
-    const summaryText = turn.content.slice(0, 50).replace(/\n/g, ' ');
-    summary.textContent = summaryText + (turn.content.length > 50 ? '...' : '');
+    summary.contentEditable = 'true';
+    summary.setAttribute('data-turn-index', index);
+    
+    // Use saved custom text or default summary
+    const defaultText = turn.content.slice(0, 50).replace(/\n/g, ' ') + (turn.content.length > 50 ? '...' : '');
+    summary.textContent = outlineData[index] || defaultText;
+    summary.setAttribute('data-default-text', defaultText);
+
+    // Save on blur (when user clicks away)
+    summary.addEventListener('blur', function() {
+      saveOutlineItem(index, this.textContent.trim());
+    });
+
+    // Save on Enter key
+    summary.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.blur(); // Trigger save
+      }
+    });
+
+    // Prevent click from bubbling when editing
+    summary.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
 
     item.appendChild(label);
     item.appendChild(summary);
 
+    // Click on the item (but not the summary) scrolls to turn
     item.addEventListener('click', () => scrollToTurn(index));
     
     outlineContent.appendChild(item);
@@ -248,6 +285,10 @@ function loadChatSettings(chatId) {
     } catch (e) {
       console.warn('Failed to parse saved settings:', e);
     }
+  } else {
+    // First time loading this chat - save it
+    saveChatSettings({});
+    console.log('New chat saved to localStorage:', chatId);
   }
 }
 
@@ -260,6 +301,65 @@ function saveChatSettings(settings) {
   const settingsKey = `settings_${currentChatId}`;
   localStorage.setItem(settingsKey, JSON.stringify(settings));
   console.log('Saved settings for chat:', currentChatId);
+}
+
+/**
+ * Load outline data for the current chat
+ */
+function loadOutlineData() {
+  if (!currentChatId) return {};
+  
+  const outlineKey = `outline_${currentChatId}`;
+  const saved = localStorage.getItem(outlineKey);
+  
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to parse saved outline data:', e);
+      return {};
+    }
+  }
+  
+  return {};
+}
+
+/**
+ * Save outline data for a specific turn
+ */
+function saveOutlineItem(turnIndex, text) {
+  if (!currentChatId) return;
+  
+  const outlineKey = `outline_${currentChatId}`;
+  const outlineData = loadOutlineData();
+  
+  // Save the custom text for this turn
+  outlineData[turnIndex] = text;
+  
+  localStorage.setItem(outlineKey, JSON.stringify(outlineData));
+  console.log(`Saved outline for turn ${turnIndex}:`, text);
+}
+
+/**
+ * Reset ALL outline items to default text
+ */
+function resetAllOutlineItems() {
+  if (!currentChatId || turns.length === 0) return;
+  
+  // Clear all outline customizations from localStorage
+  const outlineKey = `outline_${currentChatId}`;
+  localStorage.removeItem(outlineKey);
+  console.log('Reset all outline items to defaults');
+  
+  // Re-render the outline with defaults (using existing turns data)
+  renderOutline(turns);
+}
+
+/**
+ * Handle reset button click
+ */
+function handleResetClick() {
+  resetAllOutlineItems();
 }
 
 // Allow Enter key in textarea (no auto-submit)

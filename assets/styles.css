@@ -157,6 +157,7 @@ button:disabled {
 
 #outlinePanel {
   flex: 0 0 auto;
+  position: relative;
 }
 
 #outlinePanel .panel-content {
@@ -371,6 +372,67 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  cursor: text;
+}
+
+.outline-summary:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.outline-summary:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+  background: white;
+  white-space: normal;
+  overflow: visible;
+}
+
+.outline-reset-controls {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: none;
+  gap: 0.5rem;
+  z-index: 10;
+  opacity: 0.6;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.outline-reset-controls.visible {
+  display: flex;
+}
+
+.outline-reset-controls:hover {
+  opacity: 1;
+}
+
+.reset-btn {
+  background: rgba(255, 255, 255, 0.95);
+  color: #667eea;
+  border: 2px solid #667eea;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+  line-height: 1;
+}
+
+.reset-btn:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.reset-btn:active {
+  transform: translateY(0);
 }
 
 .empty-state {

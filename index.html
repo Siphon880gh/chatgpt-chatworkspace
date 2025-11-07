@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧠 ChatHTML Viewer</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header>
+    <h1>🧠 ChatHTML Viewer</h1>
+    <p>Import, store, and navigate ChatGPT conversations</p>
+  </header>
+
+  <div class="input-section">
+    <textarea 
+      id="htmlInput" 
+      placeholder="Paste ChatGPT conversation HTML here...&#10;&#10;Tip: Run this in browser console on ChatGPT:&#10;document.querySelector('[data-turn-id]').parentElement.innerHTML"
+    ></textarea>
+    <button id="loadBtn" onclick="loadChat()">Load Chat</button>
+  </div>
+
+  <div class="main-container">
+    <div id="chatPanel" class="panel">
+      <div class="panel-header">💬 Chat View</div>
+      <div id="chatContent" class="panel-content">
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <p>No chat loaded yet</p>
+          <br>
+          <div class="info-box">
+            <strong>How to use:</strong>
+            1. Open a ChatGPT conversation<br>
+            2. Run this in the browser console:<br>
+            <code>document.querySelector('[data-turn-id]').parentElement.innerHTML</code><br>
+            3. Copy the output and paste it above<br>
+            4. Click "Load Chat"
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="outlinePanel" class="panel">
+      <div class="panel-header">📋 Outline</div>
+      <div id="outlineContent" class="panel-content">
+        <div class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <p>Chat outline will appear here</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/c-hash-chat.js"></script>
+  <script src="assets/d-render-chat.js"></script>
+</body>
+</html>
+

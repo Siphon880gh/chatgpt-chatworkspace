@@ -14,13 +14,37 @@ function collectTurns(htmlString) {
   nodes.forEach(function (el, idx) {
     const role = (el.getAttribute('data-message-author-role') || '').trim();
     const msgId = (el.getAttribute('data-message-id') || ('idx-' + idx)).trim();
-    const content = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    
+    // Clone the element to manipulate it
+    const clone = el.cloneNode(true);
+    
+    // Convert <br> tags to newlines
+    clone.querySelectorAll('br').forEach(br => {
+      br.replaceWith('\n');
+    });
+    
+    // Convert block elements to newlines (p, div, etc.)
+    clone.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li').forEach(block => {
+      if (block.nextSibling) {
+        block.after('\n');
+      }
+    });
+    
+    // Get text content and normalize whitespace while preserving line breaks
+    let content = (clone.textContent || '');
+    // Convert literal \n strings to actual newlines
+    content = content.replace(/\\n/g, '\n');
+    // Replace multiple spaces/tabs with single space, but keep newlines
+    content = content.replace(/[^\S\n]+/g, ' ').trim();
+    // Remove excessive blank lines (more than 2 consecutive newlines)
+    content = content.replace(/\n{3,}/g, '\n\n');
 
     if (role && content) {
       collectedTurns.push({
         msgId: msgId,
         type: role,
-        content: content
+        content: content,
+        rawHtml: el.innerHTML // Store raw HTML for code block detection
       });
     }
   });
@@ -88,11 +112,78 @@ function renderChat(turns) {
 
     const content = document.createElement('div');
     content.className = 'turn-content';
-    content.textContent = turn.content;
+    
+    // Render content with code blocks
+    content.innerHTML = formatContentWithCode(turn.content, turn.rawHtml);
 
     turnDiv.appendChild(label);
     turnDiv.appendChild(content);
     chatContent.appendChild(turnDiv);
+  });
+}
+
+/**
+ * Format content with proper code block styling
+ */
+function formatContentWithCode(text, rawHtml) {
+  // Escape HTML to prevent injection
+  const escapeHtml = (str) => {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  };
+  
+  // Detect markdown-style code blocks (```language\ncode\n```)
+  let formatted = escapeHtml(text);
+  
+  // Counter for unique IDs
+  let codeBlockCounter = 0;
+  
+  // Handle triple-backtick code blocks
+  formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+    const language = lang || 'text';
+    const blockId = `code-block-${Date.now()}-${codeBlockCounter++}`;
+    const escapedCode = code.trim();
+    return `<div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-language">${language}</span>
+        <button class="copy-code-btn" onclick="copyCode('${blockId}')" title="Copy code">📋 Copy</button>
+      </div>
+      <pre class="code-block"><code id="${blockId}" class="language-${language}">${escapedCode}</code></pre>
+    </div>`;
+  });
+  
+  // Handle inline code with single backticks
+  formatted = formatted.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+  
+  // Convert newlines to <br> for proper display
+  formatted = formatted.replace(/\n/g, '<br>');
+  
+  return formatted;
+}
+
+/**
+ * Copy code block to clipboard
+ */
+function copyCode(blockId) {
+  const codeElement = document.getElementById(blockId);
+  if (!codeElement) return;
+  
+  const text = codeElement.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    // Find the button and show feedback
+    const wrapper = codeElement.closest('.code-block-wrapper');
+    const btn = wrapper.querySelector('.copy-code-btn');
+    const originalText = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    btn.style.background = '#10b981';
+    
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = '';
+    }, 2000);
+  }).catch(err => {
+    console.error('Failed to copy:', err);
   });
 }
 
@@ -175,6 +266,101 @@ function saveChatSettings(settings) {
 document.getElementById('htmlInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
     loadChat();
+  }
+});
+
+/**
+ * Zoom functionality for chat content
+ */
+let currentFontSize = 100; // percentage
+
+function zoomIn() {
+  if (currentFontSize < 200) {
+    currentFontSize += 10;
+    updateFontSize();
+  }
+}
+
+function zoomOut() {
+  if (currentFontSize > 60) {
+    currentFontSize -= 10;
+    updateFontSize();
+  }
+}
+
+function updateFontSize() {
+  const chatContent = document.getElementById('chatContent');
+  chatContent.style.fontSize = currentFontSize + '%';
+  
+  // Save preference
+  if (currentChatId) {
+    saveChatSettings({ fontSize: currentFontSize });
+  }
+}
+
+// Load font size when chat settings are loaded
+const originalLoadChatSettings = loadChatSettings;
+loadChatSettings = function(chatId) {
+  originalLoadChatSettings(chatId);
+  
+  const settingsKey = `settings_${chatId}`;
+  const saved = localStorage.getItem(settingsKey);
+  
+  if (saved) {
+    try {
+      const settings = JSON.parse(saved);
+      if (settings.fontSize) {
+        currentFontSize = settings.fontSize;
+        updateFontSize();
+      }
+      if (settings.chatPanelHeight) {
+        const chatPanel = document.getElementById('chatPanel');
+        chatPanel.style.flex = `0 0 ${settings.chatPanelHeight}px`;
+      }
+    } catch (e) {
+      // Already handled in original function
+    }
+  }
+};
+
+/**
+ * Resize functionality for chat panel
+ */
+const resizeHandle = document.getElementById('resizeHandle');
+let isResizing = false;
+
+resizeHandle.addEventListener('mousedown', (e) => {
+  isResizing = true;
+  document.body.style.cursor = 'row-resize';
+  document.body.style.userSelect = 'none';
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isResizing) return;
+  
+  const container = document.querySelector('.main-container');
+  const chatPanel = document.getElementById('chatPanel');
+  const containerRect = container.getBoundingClientRect();
+  const relativeY = e.clientY - containerRect.top;
+  
+  // Set minimum and maximum heights
+  const minHeight = 100;
+  const maxHeight = containerRect.height - 100;
+  const newHeight = Math.max(minHeight, Math.min(maxHeight, relativeY));
+  
+  chatPanel.style.flex = `0 0 ${newHeight}px`;
+  
+  // Save preference
+  if (currentChatId) {
+    saveChatSettings({ fontSize: currentFontSize, chatPanelHeight: newHeight });
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  if (isResizing) {
+    isResizing = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
   }
 });
 

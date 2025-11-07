@@ -243,14 +243,132 @@ function renderOutline(turns) {
       e.stopPropagation();
     });
 
+    // Preview icon
+    const previewIcon = document.createElement('button');
+    previewIcon.className = 'preview-icon';
+    previewIcon.innerHTML = '👁';
+    previewIcon.title = 'Preview message';
+    previewIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showMessagePreview(turn, index);
+    });
+
     item.appendChild(label);
     item.appendChild(summary);
+    item.appendChild(previewIcon);
 
-    // Click on the item (but not the summary) scrolls to turn
-    item.addEventListener('click', () => scrollToTurn(index));
+    // Click on the item (but not the summary) scrolls to turn only if preview panel is not open
+    item.addEventListener('click', () => {
+      const previewPanel = document.querySelector('.preview-panel');
+      if (!previewPanel) {
+        scrollToTurn(index);
+      }
+    });
     
     outlineContent.appendChild(item);
   });
+}
+
+let currentPreviewIndex = null;
+
+/**
+ * Show message preview in a docked bottom panel
+ */
+function showMessagePreview(turn, index) {
+  // Remove existing highlight
+  document.querySelectorAll('.outline-item.previewing').forEach(item => {
+    item.classList.remove('previewing');
+  });
+
+  // If clicking the same item, close the preview
+  const existingPanel = document.querySelector('.preview-panel');
+  if (currentPreviewIndex === index && existingPanel) {
+    closePreviewPanel();
+    return;
+  }
+
+  currentPreviewIndex = index;
+
+  // Highlight the current outline item
+  const outlineItems = document.querySelectorAll('.outline-item');
+  if (outlineItems[index]) {
+    outlineItems[index].classList.add('previewing');
+  }
+
+  // Remove any existing panel
+  if (existingPanel) {
+    existingPanel.remove();
+  }
+
+  // Create panel
+  const panel = document.createElement('div');
+  panel.className = 'preview-panel';
+  
+  const panelHeader = document.createElement('div');
+  panelHeader.className = 'preview-panel-header';
+  
+  const panelTitle = document.createElement('div');
+  panelTitle.className = 'preview-panel-title';
+  panelTitle.textContent = `${turn.type === 'user' ? '👤 User' : '🤖 Assistant'} - Turn ${index + 1}`;
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'preview-panel-close';
+  closeBtn.innerHTML = '✕';
+  closeBtn.title = 'Close';
+  closeBtn.addEventListener('click', closePreviewPanel);
+  
+  panelHeader.appendChild(panelTitle);
+  panelHeader.appendChild(closeBtn);
+  
+  const panelContent = document.createElement('div');
+  panelContent.className = 'preview-panel-content';
+  panelContent.textContent = turn.content;
+  
+  panel.appendChild(panelHeader);
+  panel.appendChild(panelContent);
+  
+  document.body.appendChild(panel);
+  
+  // Add margin to outline panel to prevent content being covered
+  setTimeout(() => {
+    const panelHeight = panel.offsetHeight;
+    const outlineContent = document.getElementById('outlineContent');
+    if (outlineContent) {
+      outlineContent.style.marginBottom = `${panelHeight}px`;
+    }
+  }, 50); // Small delay to ensure panel is rendered
+  
+  // Close on Escape key
+  const escapeHandler = (e) => {
+    if (e.key === 'Escape') {
+      closePreviewPanel();
+      document.removeEventListener('keydown', escapeHandler);
+    }
+  };
+  document.addEventListener('keydown', escapeHandler);
+}
+
+/**
+ * Close the preview panel
+ */
+function closePreviewPanel() {
+  const panel = document.querySelector('.preview-panel');
+  if (panel) {
+    panel.remove();
+  }
+  
+  // Remove highlight
+  document.querySelectorAll('.outline-item.previewing').forEach(item => {
+    item.classList.remove('previewing');
+  });
+  
+  // Remove margin from outline content
+  const outlineContent = document.getElementById('outlineContent');
+  if (outlineContent) {
+    outlineContent.style.marginBottom = '0';
+  }
+  
+  currentPreviewIndex = null;
 }
 
 /**

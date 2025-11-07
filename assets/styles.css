@@ -342,12 +342,18 @@ button:disabled {
   transition: all 0.2s;
   border-left: 3px solid transparent;
   font-size: 0.9rem;
+  position: relative;
 }
 
 .outline-item:hover {
   background: #f8f9fa;
   border-left-color: #667eea;
   transform: translateX(4px);
+}
+
+.outline-item:hover .preview-icon {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .outline-item.user {
@@ -388,6 +394,29 @@ button:disabled {
   background: white;
   white-space: normal;
   overflow: visible;
+}
+
+.preview-icon {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #667eea;
+  color: #667eea;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s;
+  line-height: 1;
+  z-index: 5;
+}
+
+.preview-icon:hover {
+  background: #667eea;
+  transform: scale(1.1);
 }
 
 .outline-reset-controls {
@@ -502,6 +531,89 @@ button:disabled {
   display: block;
 }
 
+/* Preview Panel - Docked Bottom */
+.preview-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 3px solid #667eea;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 40vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.preview-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: #667eea;
+  color: white;
+}
+
+.preview-panel-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.preview-panel-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.preview-panel-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.preview-panel-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #333;
+  user-select: text;
+  cursor: text;
+  flex: 1;
+}
+
+.outline-item.previewing {
+  background: rgba(102, 126, 234, 0.15) !important;
+  border-left-color: #667eea !important;
+  transform: translateX(4px);
+}
+
+#outlineContent {
+  transition: margin-bottom 0.3s ease-out;
+}
+
 @media (max-width: 768px) {
   .input-section {
     flex-direction: column;
@@ -509,6 +621,10 @@ button:disabled {
 
   button {
     width: 100%;
+  }
+  
+  .preview-panel {
+    max-height: 50vh;
   }
 }
 

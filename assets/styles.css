@@ -375,7 +375,7 @@ button:disabled {
 
 .empty-state {
   text-align: center;
-  padding: 3rem 1rem;
+  /* padding: 3rem 1rem; */
   color: #999;
 }
 
@@ -405,6 +405,39 @@ button:disabled {
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
   font-size: 0.8rem;
+}
+
+.console-instruction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.copy-inline-btn {
+  background: transparent;
+  border: 1px solid rgba(0,0,0,0.2);
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: none;
+  color: #856404;
+  min-width: 0;
+  line-height: 1;
+}
+
+.copy-inline-btn:hover {
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.3);
+  transform: none;
+  box-shadow: none;
+}
+
+.copy-inline-btn svg {
+  display: block;
 }
 
 @media (max-width: 768px) {

@@ -25,14 +25,23 @@
       <div class="panel-header">💬 Chat View</div>
       <div id="chatContent" class="panel-content">
         <div class="empty-state">
-          <div class="empty-state-icon">📭</div>
+          <!-- <div class="empty-state-icon">📭</div> -->
           <p>No chat loaded yet</p>
           <br>
           <div class="info-box">
             <strong>How to use:</strong>
-            1. Open a ChatGPT conversation<br>
-            2. Run this in the browser console:<br>
-            <code>document.querySelector('[data-turn-id]').parentElement.innerHTML</code><br>
+            <span>1. Open a ChatGPT conversation</span><br>
+			<span>2. Run this in the browser console:</span><br/>
+			<div class="console-instruction">
+				<code id="consoleCommand">document.querySelector('[data-turn-id]').parentElement.innerHTML</code>
+				<button class="copy-inline-btn" onclick="copyConsoleCommand()" title="Copy command">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+						<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+					</svg>
+					</button>
+			</div>
+			  <br>
             3. Copy the output and paste it above<br>
             4. Click "Load Chat"
           </div>
@@ -59,6 +68,19 @@
 
   <script src="assets/c-hash-chat.js"></script>
   <script src="assets/d-render-chat.js"></script>
+  <script>
+    function copyConsoleCommand() {
+      const command = document.getElementById('consoleCommand').textContent;
+      navigator.clipboard.writeText(command).then(() => {
+        const btn = event.target.closest('.copy-inline-btn');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+        }, 1500);
+      });
+    }
+  </script>
 </body>
 </html>
 

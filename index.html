@@ -17,7 +17,10 @@
       id="htmlInput" 
       placeholder="Paste ChatGPT conversation HTML here...&#10;&#10;Tip: Run this in browser console on ChatGPT:&#10;document.querySelector('[data-turn-id]').parentElement.innerHTML"
     ></textarea>
-    <button id="loadBtn" onclick="loadChat()">Load Chat</button>
+    <div class="button-group">
+      <button id="loadBtn" onclick="loadChat()">Load Chat</button>
+      <button id="shareBtn" class="share-btn" onclick="handleShareClick()" disabled>🔗 Share</button>
+    </div>
   </div>
 
   <div class="main-container">

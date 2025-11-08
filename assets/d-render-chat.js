@@ -87,6 +87,10 @@ async function loadChat() {
     // Render the chat
     renderChat(turns);
     renderOutline(turns);
+    
+    // Enable share button
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn) shareBtn.disabled = false;
 
   } catch (error) {
     console.error('Error loading chat:', error);
@@ -194,7 +198,7 @@ function renderOutline(turns) {
   const outlineContent = document.getElementById('outlineContent');
   outlineContent.innerHTML = '';
 
-  // Show or hide reset button based on whether there are turns
+  // Show or hide reset controls based on whether there are turns
   const resetControls = document.querySelector('.outline-reset-controls');
   if (resetControls) {
     if (turns.length > 0) {
@@ -827,6 +831,88 @@ function resetAllOutlineItems() {
  */
 function handleResetClick() {
   resetAllOutlineItems();
+}
+
+/**
+ * Handle share button click
+ */
+function handleShareClick() {
+  if (turns.length === 0) return;
+  showShareModal();
+}
+
+/**
+ * Show share modal
+ */
+function showShareModal() {
+  // Remove any existing modal
+  const existingModal = document.querySelector('.share-modal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  // Create backdrop
+  const modal = document.createElement('div');
+  modal.className = 'share-modal';
+  
+  // Create modal container
+  const modalContent = document.createElement('div');
+  modalContent.className = 'share-modal-content';
+  
+  const modalHeader = document.createElement('div');
+  modalHeader.className = 'share-modal-header';
+  
+  const modalTitle = document.createElement('div');
+  modalTitle.className = 'share-modal-title';
+  modalTitle.textContent = '🔗 Share Chat';
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'share-modal-close';
+  closeBtn.innerHTML = '✕';
+  closeBtn.title = 'Close';
+  closeBtn.addEventListener('click', () => modal.remove());
+  
+  modalHeader.appendChild(modalTitle);
+  modalHeader.appendChild(closeBtn);
+  
+  const modalBody = document.createElement('div');
+  modalBody.className = 'share-modal-body';
+  
+  const description = document.createElement('p');
+  description.textContent = 'Share this chat with others';
+  
+  const shareButton = document.createElement('button');
+  shareButton.className = 'share-modal-share-btn';
+  shareButton.textContent = '🔗 Generate Share Link';
+  shareButton.addEventListener('click', () => {
+    // Placeholder for future functionality
+    console.log('Share button clicked');
+  });
+  
+  modalBody.appendChild(description);
+  modalBody.appendChild(shareButton);
+  
+  modalContent.appendChild(modalHeader);
+  modalContent.appendChild(modalBody);
+  
+  modal.appendChild(modalContent);
+  document.body.appendChild(modal);
+  
+  // Close on Escape key
+  const escapeHandler = (e) => {
+    if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', escapeHandler);
+    }
+  };
+  document.addEventListener('keydown', escapeHandler);
+  
+  // Close on backdrop click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
 }
 
 // Allow Enter key in textarea (no auto-submit)

@@ -47,9 +47,9 @@
 }
 
 // LocalStorage Keys (per chat)
-ChatWorkspace_{chatId}           // { fontSize, chatPanelHeight, commentViewEmphasized }
+ChatWorkspace_{chatId}           // { fontSize, chatPanelHeight }
 ChatWorkspace_{chatId}_outline   // { [turnIndex]: customSummaryText }
-ChatWorkspace_{chatId}_comments  // { [turnIndex]: commentText }
+ChatWorkspace_{chatId}_comments  // { [turnIndex]: { heading: string, turn: string } }
 ```
 
 ---
@@ -179,9 +179,9 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Creates `.outline-item` divs
 - Loads saved summaries from `localStorage`
 - Loads comments data
-- Renders two comment views:
-  - **De-emphasized:** Below summary, italic, gray
-  - **Emphasized:** Above label, highlighted callout box
+- Renders two types of comments:
+  - **Heading Comment:** Above label, highlighted callout box
+  - **Turn Comment:** Below summary, italic, gray
 - Adds hover icons (🗨️/💬 for comment, 👁 for preview)
 - Attaches click handlers for navigation
 
@@ -192,21 +192,20 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 
 #### **Section D: Comments System (middle-late)**
 
-**`loadCommentsData()` / `saveComment(turnIndex, comment)`**
+**`loadCommentsData()` / `saveComment(turnIndex, headingComment, turnComment)`**
 - Persists to `ChatWorkspace_{chatId}_comments`
+- Stores two types of comments: heading and turn
 - Empty comments are deleted from storage
 - Triggers `renderOutline()` to update UI
 
 **`showCommentEditor(turn, index)`**
 - Creates modal overlay
-- Shows textarea with current comment
-- Save/Delete buttons
+- Shows two separate textareas:
+  - **Heading Comment:** Displayed above role label
+  - **Turn Comment:** Displayed below summary text
+- Save/Delete All buttons
 - Closes on Escape or backdrop click
-
-**`getCommentViewPreference()` / `toggleCommentView()`**
-- Per-chat preference stored in `ChatWorkspace_{chatId}` settings
-- Toggles between emphasized/de-emphasized views
-- Re-renders outline on toggle
+- Handles legacy string format for backward compatibility
 
 #### **Section E: Preview Panel (late-middle)**
 
@@ -239,9 +238,9 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 #### **Section G: Persistence (late)**
 
 **`loadChatSettings(chatId)` / `saveChatSettings(settings)`**
-- Stores `{ fontSize, chatPanelHeight, commentViewEmphasized }` in `ChatWorkspace_{chatId}`
+- Stores `{ fontSize, chatPanelHeight }` in `ChatWorkspace_{chatId}`
 - Loads on chat open
-- Saves on zoom/resize/comment view toggle
+- Saves on zoom/resize actions
 
 **`loadOutlineData()` / `saveOutlineItem(turnIndex, text)`**
 - Per-turn custom summaries
@@ -291,14 +290,15 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 **How:** `contentEditable` + blur/Enter event listeners  
 **Storage:** `ChatWorkspace_{chatId}_outline` with turn index as key
 
-### Feature: Comments (Two View Modes)
+### Feature: Comments (Two Types)
 
 **File:** `d-render-chat.js` (comment functions, middle-late)  
 **How:**
-- Modal editor for input
-- Global preference toggles display style
-- Emphasized: Above label, highlighted
-- De-emphasized: Below summary, italic
+- Modal editor with two separate input fields
+- **Heading Comment:** Always displayed above role label, highlighted
+- **Turn Comment:** Always displayed below summary text, italic
+- Both types can be used simultaneously or independently
+- Legacy support for old string-based comments (treated as turn comments)
 
 ### Feature: Message Preview
 
@@ -339,9 +339,9 @@ let isResizing = false;          // Resize drag state
 
 **LocalStorage Schema:**
 ```
-ChatWorkspace_{chatId}           → { fontSize: number, chatPanelHeight: number, commentViewEmphasized: boolean }
+ChatWorkspace_{chatId}           → { fontSize: number, chatPanelHeight: number }
 ChatWorkspace_{chatId}_outline   → { [index: number]: string }
-ChatWorkspace_{chatId}_comments  → { [index: number]: string }
+ChatWorkspace_{chatId}_comments  → { [index: number]: { heading: string, turn: string } }
 ```
 
 ---

@@ -251,9 +251,21 @@ function renderOutline(turns) {
     // Comment icon
     const commentIcon = document.createElement('button');
     commentIcon.className = 'comment-icon';
-    const hasComment = commentsData[index] !== undefined && commentsData[index] !== null;
+    const commentData = commentsData[index];
+    let hasComment = false;
+    
+    // Check if there's any comment (handle both legacy string and new object format)
+    if (commentData !== undefined && commentData !== null) {
+      if (typeof commentData === 'string') {
+        hasComment = commentData.trim() !== '';
+      } else {
+        hasComment = (commentData.heading && commentData.heading.trim() !== '') || 
+                     (commentData.turn && commentData.turn.trim() !== '');
+      }
+    }
+    
     commentIcon.innerHTML = hasComment ? '💬' : '🗨️';
-    commentIcon.title = hasComment ? 'Edit comment' : 'Add comment';
+    commentIcon.title = hasComment ? 'Edit comments' : 'Add comments';
     if (hasComment) {
       commentIcon.classList.add('has-comment');
     }
@@ -275,14 +287,25 @@ function renderOutline(turns) {
     iconsContainer.appendChild(commentIcon);
     iconsContainer.appendChild(previewIcon);
 
-    // Get comment view preference
-    const commentViewEmphasized = getCommentViewPreference();
+    // Get comments for this turn (handle legacy string format)
+    let headingComment = '';
+    let turnComment = '';
+    if (hasComment) {
+      const comments = commentsData[index];
+      if (typeof comments === 'string') {
+        // Legacy format - treat as turn comment
+        turnComment = comments;
+      } else {
+        headingComment = comments.heading || '';
+        turnComment = comments.turn || '';
+      }
+    }
     
-    // Display comment if exists and view is emphasized (above label)
-    if (hasComment && commentViewEmphasized) {
+    // Display heading comment if exists (above label, emphasized)
+    if (headingComment) {
       const commentDisplay = document.createElement('div');
       commentDisplay.className = 'comment-display comment-emphasized';
-      commentDisplay.textContent = commentsData[index];
+      commentDisplay.textContent = headingComment;
       
       // Prevent click from bubbling to parent
       commentDisplay.addEventListener('click', function(e) {
@@ -296,11 +319,11 @@ function renderOutline(turns) {
     item.appendChild(summary);
     item.appendChild(iconsContainer);
 
-    // Display comment if exists and view is de-emphasized (below)
-    if (hasComment && !commentViewEmphasized) {
+    // Display turn comment if exists (below summary, de-emphasized)
+    if (turnComment) {
       const commentDisplay = document.createElement('div');
       commentDisplay.className = 'comment-display';
-      commentDisplay.textContent = commentsData[index];
+      commentDisplay.textContent = turnComment;
       
       // Prevent click from bubbling to parent
       commentDisplay.addEventListener('click', function(e) {
@@ -325,62 +348,6 @@ function renderOutline(turns) {
 let currentPreviewIndex = null;
 
 /**
- * Get comment view preference (true = emphasized/above, false = de-emphasized/below)
- */
-function getCommentViewPreference() {
-  if (!currentChatId) return false;
-  
-  const settingsKey = `ChatWorkspace_${currentChatId}`;
-  const saved = localStorage.getItem(settingsKey);
-  
-  if (saved) {
-    try {
-      const settings = JSON.parse(saved);
-      return settings.commentViewEmphasized === true;
-    } catch (e) {
-      return false;
-    }
-  }
-  
-  return false; // Default to false (de-emphasized)
-}
-
-/**
- * Set comment view preference
- */
-function setCommentViewPreference(emphasized) {
-  if (!currentChatId) return;
-  
-  const settingsKey = `ChatWorkspace_${currentChatId}`;
-  const saved = localStorage.getItem(settingsKey);
-  let settings = {};
-  
-  if (saved) {
-    try {
-      settings = JSON.parse(saved);
-    } catch (e) {
-      settings = {};
-    }
-  }
-  
-  settings.commentViewEmphasized = emphasized;
-  localStorage.setItem(settingsKey, JSON.stringify(settings));
-}
-
-/**
- * Toggle comment view
- */
-function toggleCommentView() {
-  const current = getCommentViewPreference();
-  setCommentViewPreference(!current);
-  
-  // Re-render outline to apply new view
-  if (turns.length > 0) {
-    renderOutline(turns);
-  }
-}
-
-/**
  * Load comments data for the current chat
  */
 function loadCommentsData() {
@@ -402,24 +369,30 @@ function loadCommentsData() {
 }
 
 /**
- * Save comment for a specific turn
+ * Save comments for a specific turn (both heading and turn comments)
  */
-function saveComment(turnIndex, comment) {
+function saveComment(turnIndex, headingComment, turnComment) {
   if (!currentChatId) return;
   
   const commentsKey = `ChatWorkspace_${currentChatId}_comments`;
   const commentsData = loadCommentsData();
   
-  if (comment !== null && comment !== undefined && comment !== '') {
-    // Save comment as-is, preserving blank lines and whitespace
-    commentsData[turnIndex] = comment;
+  const hasHeading = headingComment !== null && headingComment !== undefined && headingComment.trim() !== '';
+  const hasTurn = turnComment !== null && turnComment !== undefined && turnComment.trim() !== '';
+  
+  if (hasHeading || hasTurn) {
+    // Save both comments
+    commentsData[turnIndex] = {
+      heading: hasHeading ? headingComment : '',
+      turn: hasTurn ? turnComment : ''
+    };
   } else {
-    // Remove comment if truly empty
+    // Remove comment entry if both are empty
     delete commentsData[turnIndex];
   }
   
   localStorage.setItem(commentsKey, JSON.stringify(commentsData));
-  console.log(`Saved comment for turn ${turnIndex}`);
+  console.log(`Saved comments for turn ${turnIndex}`);
   
   // Re-render outline to update comment icon
   renderOutline(turns);
@@ -436,7 +409,17 @@ function showCommentEditor(turn, index) {
   }
 
   const commentsData = loadCommentsData();
-  const currentComment = commentsData[index] || '';
+  const currentComments = commentsData[index] || { heading: '', turn: '' };
+  
+  // Handle legacy data format (string instead of object)
+  let headingValue = '';
+  let turnValue = '';
+  if (typeof currentComments === 'string') {
+    turnValue = currentComments;
+  } else {
+    headingValue = currentComments.heading || '';
+    turnValue = currentComments.turn || '';
+  }
 
   // Create backdrop
   const editor = document.createElement('div');
@@ -451,7 +434,7 @@ function showCommentEditor(turn, index) {
   
   const editorTitle = document.createElement('div');
   editorTitle.className = 'comment-editor-title';
-  editorTitle.textContent = `Comment - ${turn.type === 'user' ? '👤 User' : '🤖 Assistant'} Turn ${index + 1}`;
+  editorTitle.textContent = `Comments - ${turn.type === 'user' ? '👤 User' : '🤖 Assistant'} Turn ${index + 1}`;
   
   const closeBtn = document.createElement('button');
   closeBtn.className = 'comment-editor-close';
@@ -465,12 +448,42 @@ function showCommentEditor(turn, index) {
   const editorBody = document.createElement('div');
   editorBody.className = 'comment-editor-body';
   
-  const textarea = document.createElement('textarea');
-  textarea.className = 'comment-textarea';
-  textarea.placeholder = 'Add your comment here...';
-  textarea.value = currentComment;
+  // Heading comment section
+  const headingSection = document.createElement('div');
+  headingSection.className = 'comment-section';
   
-  editorBody.appendChild(textarea);
+  const headingLabel = document.createElement('label');
+  headingLabel.className = 'comment-label';
+  headingLabel.textContent = '📌 Heading Comment';
+  headingLabel.title = 'Displayed above the role label';
+  
+  const headingTextarea = document.createElement('textarea');
+  headingTextarea.className = 'comment-textarea comment-textarea-heading';
+  headingTextarea.placeholder = 'Add heading comment (appears above role label)...';
+  headingTextarea.value = headingValue;
+  
+  headingSection.appendChild(headingLabel);
+  headingSection.appendChild(headingTextarea);
+  
+  // Turn comment section
+  const turnSection = document.createElement('div');
+  turnSection.className = 'comment-section';
+  
+  const turnLabel = document.createElement('label');
+  turnLabel.className = 'comment-label';
+  turnLabel.textContent = '💭 Turn Comment';
+  turnLabel.title = 'Displayed below the summary text';
+  
+  const turnTextarea = document.createElement('textarea');
+  turnTextarea.className = 'comment-textarea';
+  turnTextarea.placeholder = 'Add turn comment (appears below summary text)...';
+  turnTextarea.value = turnValue;
+  
+  turnSection.appendChild(turnLabel);
+  turnSection.appendChild(turnTextarea);
+  
+  editorBody.appendChild(headingSection);
+  editorBody.appendChild(turnSection);
   
   const editorFooter = document.createElement('div');
   editorFooter.className = 'comment-editor-footer';
@@ -479,15 +492,15 @@ function showCommentEditor(turn, index) {
   saveBtn.className = 'comment-save-btn';
   saveBtn.textContent = '💾 Save';
   saveBtn.addEventListener('click', () => {
-    saveComment(index, textarea.value);
+    saveComment(index, headingTextarea.value, turnTextarea.value);
     editor.remove();
   });
   
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'comment-delete-btn';
-  deleteBtn.textContent = '🗑️ Delete';
+  deleteBtn.textContent = '🗑️ Delete All';
   deleteBtn.addEventListener('click', () => {
-    saveComment(index, '');
+    saveComment(index, '', '');
     editor.remove();
   });
   
@@ -501,8 +514,8 @@ function showCommentEditor(turn, index) {
   editor.appendChild(modal);
   document.body.appendChild(editor);
   
-  // Focus textarea
-  textarea.focus();
+  // Focus first textarea
+  headingTextarea.focus();
   
   // Close on Escape key
   const escapeHandler = (e) => {

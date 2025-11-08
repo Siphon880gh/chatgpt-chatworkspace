@@ -253,29 +253,33 @@ function extractFormattedContent(rawHtml) {
       // Clone to avoid modifying original
       const clone = markdownDiv.cloneNode(true);
       
-      // Process code blocks to handle literal \n characters
-      const codeBlocks = clone.querySelectorAll('code');
-      codeBlocks.forEach(codeBlock => {
-        // Get all text nodes and replace literal \n with actual newlines
-        const walker = document.createTreeWalker(
-          codeBlock,
-          NodeFilter.SHOW_TEXT,
-          null,
-          false
-        );
-        
-        const textNodes = [];
-        let node;
-        while (node = walker.nextNode()) {
-          textNodes.push(node);
-        }
-        
-        textNodes.forEach(textNode => {
+      // Process ALL text nodes to remove literal \n characters
+      const walker = document.createTreeWalker(
+        clone,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
+      
+      const textNodes = [];
+      let node;
+      while (node = walker.nextNode()) {
+        textNodes.push(node);
+      }
+      
+      textNodes.forEach(textNode => {
+        // For code blocks: convert literal \n to actual newlines
+        const isInCodeBlock = textNode.parentElement && textNode.parentElement.closest('code');
+        if (isInCodeBlock) {
           if (textNode.textContent.includes('\\n')) {
-            // Replace escaped newlines (\\n) with actual newlines
             textNode.textContent = textNode.textContent.replace(/\\n/g, '\n');
           }
-        });
+        } else {
+          // For non-code blocks: remove literal \n completely
+          if (textNode.textContent.includes('\\n')) {
+            textNode.textContent = textNode.textContent.replace(/\\n/g, '');
+          }
+        }
       });
       
       let html = clone.innerHTML;

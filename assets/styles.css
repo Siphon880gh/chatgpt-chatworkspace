@@ -308,7 +308,7 @@ button:disabled {
 }
 
 .collapse-toggle {
-  position: absolute;
+  position: sticky;
   left: 0.25rem;
   top: 1rem;
   background: rgba(255, 255, 255, 0.9);
@@ -329,6 +329,9 @@ button:disabled {
   height: 1.5rem;
   letter-spacing: -0.1em;
   transform: rotate(90deg);
+  float: left;
+  margin-left: -2.25rem;
+  margin-right: 0.75rem;
   z-index: 10;
   backdrop-filter: blur(4px);
 }

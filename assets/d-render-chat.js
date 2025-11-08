@@ -667,7 +667,7 @@ function renderOutline(turns) {
     if (headingComment) {
       const commentDisplay = document.createElement('div');
       commentDisplay.className = 'comment-display comment-emphasized';
-      commentDisplay.textContent = headingComment;
+      commentDisplay.innerHTML = headingComment;
       
       // Prevent click from bubbling to parent
       commentDisplay.addEventListener('click', function(e) {
@@ -685,7 +685,7 @@ function renderOutline(turns) {
     if (turnComment) {
       const commentDisplay = document.createElement('div');
       commentDisplay.className = 'comment-display';
-      commentDisplay.textContent = turnComment;
+      commentDisplay.innerHTML = turnComment;
       
       // Prevent click from bubbling to parent
       commentDisplay.addEventListener('click', function(e) {
@@ -828,6 +828,26 @@ function saveComment(turnIndex, headingComment, turnComment) {
 }
 
 /**
+ * Insert text at cursor position in textarea
+ */
+function insertAtCursor(textarea, text) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const value = textarea.value;
+  
+  // Insert the text at cursor position
+  textarea.value = value.substring(0, start) + text + value.substring(end);
+  
+  // Move cursor to end of inserted text
+  const newPos = start + text.length;
+  textarea.selectionStart = newPos;
+  textarea.selectionEnd = newPos;
+  
+  // Focus the textarea
+  textarea.focus();
+}
+
+/**
  * Show comment editor for a turn
  */
 function showCommentEditor(turn, index) {
@@ -894,21 +914,69 @@ function showCommentEditor(turn, index) {
   headingSection.appendChild(headingLabel);
   headingSection.appendChild(headingTextarea);
   
-  // Turn comment section
+  // Turn comment section with toolbar
   const turnSection = document.createElement('div');
   turnSection.className = 'comment-section';
+  
+  const turnLabelRow = document.createElement('div');
+  turnLabelRow.className = 'comment-label-row';
   
   const turnLabel = document.createElement('label');
   turnLabel.className = 'comment-label';
   turnLabel.textContent = '💭 Turn Comment';
   turnLabel.title = 'Displayed below the summary text';
   
+  // Toolbar
+  const toolbar = document.createElement('div');
+  toolbar.className = 'comment-toolbar';
+  
+  // Collapsible button
+  const collapsibleBtn = document.createElement('button');
+  collapsibleBtn.className = 'toolbar-btn';
+  collapsibleBtn.innerHTML = '▼';
+  collapsibleBtn.title = 'Insert collapsible section';
+  collapsibleBtn.type = 'button';
+  
+  // Two column button
+  const twoColBtn = document.createElement('button');
+  twoColBtn.className = 'toolbar-btn';
+  twoColBtn.innerHTML = '⫿';
+  twoColBtn.title = 'Insert two columns';
+  twoColBtn.type = 'button';
+  
+  // Three column button
+  const threeColBtn = document.createElement('button');
+  threeColBtn.className = 'toolbar-btn';
+  threeColBtn.innerHTML = '≡';
+  threeColBtn.title = 'Insert three columns';
+  threeColBtn.type = 'button';
+  
+  toolbar.appendChild(collapsibleBtn);
+  toolbar.appendChild(twoColBtn);
+  toolbar.appendChild(threeColBtn);
+  
+  turnLabelRow.appendChild(turnLabel);
+  turnLabelRow.appendChild(toolbar);
+  
   const turnTextarea = document.createElement('textarea');
   turnTextarea.className = 'comment-textarea';
-  turnTextarea.placeholder = 'Add turn comment (appears below summary text)...';
+  turnTextarea.placeholder = 'Add turn comment (appears below summary text)...\n\nYou can use HTML for formatting.';
   turnTextarea.value = turnValue;
   
-  turnSection.appendChild(turnLabel);
+  // Toolbar button handlers
+  collapsibleBtn.addEventListener('click', () => {
+    insertAtCursor(turnTextarea, '<details>\n  <summary>Click to expand</summary>\n  <div>Content goes here...</div>\n</details>\n');
+  });
+  
+  twoColBtn.addEventListener('click', () => {
+    insertAtCursor(turnTextarea, '<div class="columns-2">\n  <div>Column 1</div>\n  <div>Column 2</div>\n</div>\n');
+  });
+  
+  threeColBtn.addEventListener('click', () => {
+    insertAtCursor(turnTextarea, '<div class="columns-3">\n  <div>Column 1</div>\n  <div>Column 2</div>\n  <div>Column 3</div>\n</div>\n');
+  });
+  
+  turnSection.appendChild(turnLabelRow);
   turnSection.appendChild(turnTextarea);
   
   editorBody.appendChild(headingSection);

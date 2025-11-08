@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🧠 ChatHTML Viewer</title>
+  <title>🧠 ChatGPT ChatWorkspace</title>
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
   <header>
-    <h1>🧠 ChatHTML Viewer</h1>
+    <h1>🧠 ChatGPT ChatWorkspace</h1>
     <p>Import, store, and navigate ChatGPT conversations</p>
   </header>
 
@@ -98,4 +98,3 @@
   </script>
 </body>
 </html>
-

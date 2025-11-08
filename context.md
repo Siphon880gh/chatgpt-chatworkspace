@@ -28,12 +28,14 @@
 
 ### Application Flow
 
-1. **Input Stage:** User pastes ChatGPT conversation HTML
+1. **Input Stage:** User pastes ChatGPT conversation HTML (or URL parameters auto-load)
 2. **Parse Stage:** DOMParser extracts message turns from HTML
 3. **Hash Stage:** SHA-256 generates unique chat ID from message content
 4. **Storage Stage:** Check localStorage for existing customizations
 5. **Render Stage:** Display chat panel + outline panel with saved preferences
 6. **Interaction Stage:** User can zoom, resize, edit summaries, add comments, preview
+7. **Share Stage:** User can generate shareable link that saves all data to server
+8. **Open Stage:** URL parameters (`?shared=` or `?open=`) auto-load chats from server or localStorage
 
 ### Data Model
 
@@ -52,6 +54,7 @@ ChatWorkspace_{chatId}_outline   // { [turnIndex]: customSummaryText }
 ChatWorkspace_{chatId}_comments  // { [turnIndex]: { heading: string, turn: string } }
 ChatWorkspace_{chatId}_indents   // { [turnIndex]: indentLevel }
 ChatWorkspace_{chatId}_notes     // { notes: string, lastUpdated: ISO timestamp }
+ChatWorkspace_{chatId}_html      // Original chat HTML (for URL ?open= parameter)
 ```
 
 ---
@@ -61,14 +64,17 @@ ChatWorkspace_{chatId}_notes     // { notes: string, lastUpdated: ISO timestamp 
 ```
 /Users/wengffung/dev/web/xny/chat/
 ├── index.php                  (~102 lines) - Main UI structure (HTML input, notes textarea, panels)
-├── README.md                   (~191 lines) - User-facing documentation
-├── context.md                  (this file) - Developer documentation
+├── share.php                  (~104 lines) - Backend API for sharing conversations
+├── README.md                  (~196 lines) - User-facing documentation
+├── context.md                 (this file) - Developer documentation
+├── shared/                    - Directory for shared conversation JSON files
+│   └── {chatId}.json         - Shared conversation data
 └── assets/
-    ├── a-load-chat.js          (2 lines) - Console snippet to extract ChatGPT HTML
-    ├── b-store-turns.js        (32 lines) - Standalone turn collector (not used in main flow)
-    ├── c-hash-chat.js          (~90 lines) - SHA-256 hashing utilities
-    ├── d-render-chat.js        (1075 lines) - Core application logic
-    └── styles.css              (1003 lines) - All styling (gradients, panels, modals)
+    ├── a-load-chat.js         (2 lines) - Console snippet to extract ChatGPT HTML
+    ├── b-store-turns.js       (32 lines) - Standalone turn collector (not used in main flow)
+    ├── c-hash-chat.js         (~90 lines) - SHA-256 hashing utilities
+    ├── d-render-chat.js       (~1361 lines) - Core application logic
+    └── styles.css             (~1166 lines) - All styling (gradients, panels, modals)
 ```
 
 ---
@@ -282,9 +288,109 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Placeholder suggests use cases (URL, goals, context)
 - Visible before and after loading chat
 
+#### **Section J: Share & Open System (lines 888-1359)**
+
+**`handleShareClick()` / `showShareModal()`**
+- Triggered by Share button (🔗) in UI
+- Creates modal overlay with generation button
+- Collects all localStorage data for current chat
+- Sends POST request to `share.php?id={chatId}`
+- Displays shareable link on success with auto-copy
+- Shows retry option on error
+
+**`handleUrlParameters()` - Page Load Handler**
+- Runs on DOMContentLoaded or immediately if already loaded
+- Handles two URL parameter patterns:
+
+**Pattern 1: `?shared={chatId}` (Priority)**
+- Fetches `shared/{chatId}.json` from server
+- Saves all data to localStorage (chatHtml, outline, comments, indents, notes)
+- Populates HTML textarea if chatHtml exists
+- Changes URL to `?open={chatId}` (via pushState)
+- Auto-loads chat after 100ms delay
+- Purpose: First-time access to shared link from another user
+
+**Pattern 2: `?open={chatId}` (Fallback)**
+- Checks localStorage for `ChatWorkspace_{chatId}_html`
+- If found: Populates textarea and auto-loads chat
+- If not found: Redirects to `?shared={chatId}` to fetch from server
+- Purpose: Re-opening chats after refresh or localStorage exists
+
+**URL Management:**
+- `loadChat()` updates URL to `?open={chatId}` when loading (line 85)
+- Uses `window.history.pushState()` to avoid page reload
+- URL persists on refresh, allowing bookmarking of specific chats
+- Falls back to server fetch if localStorage is cleared
+
 ---
 
-### 5. Styling (`styles.css`)
+### 5. Share Backend (`share.php`)
+
+**Location:** PHP backend API (~104 lines)  
+**Purpose:** Handle conversation sharing requests and persist data to server
+
+**Main Flow (throughout file):**
+
+1. **Request Validation (lines 7-27):**
+   - Checks HTTP method is POST
+   - Validates `id` query parameter exists
+   - Validates ID format: `/^[a-zA-Z0-9]{32,128}$/`
+   - Returns 400/405 errors for invalid requests
+
+2. **Data Reception (lines 29-46):**
+   - Reads raw POST body via `file_get_contents('php://input')`
+   - Parses JSON with error handling
+   - Extracts optional fields: `chatHtml`, `turns`, `outline`, `comments`, `indents`, `notes`
+
+3. **Data Preparation (lines 47-72):**
+   - Creates structured array with conversationId, timestamp, and data object
+   - Only includes non-empty fields (reduces file size)
+   - Adds ISO 8601 timestamp via `date('c')`
+
+4. **File Storage (lines 74-92):**
+   - Creates `shared/` directory if missing (mode 0755)
+   - Writes to `shared/{conversationId}.json`
+   - Uses `JSON_PRETTY_PRINT` for readability
+   - Returns 500 error if write fails
+
+5. **Success Response (lines 94-101):**
+   - Returns JSON with `success: true`
+   - Includes `shareUrl`: `/shared/{conversationId}.json`
+   - Includes timestamp for client verification
+
+**Security Features:**
+- Regex validation prevents directory traversal (`../` attacks)
+- CORS headers allow cross-origin requests (if needed)
+- No database required (simple file-based storage)
+- No authentication (public share links)
+
+**Example Request:**
+```bash
+POST /share.php?id=abc123def456...
+Content-Type: application/json
+
+{
+  "chatHtml": "<div>...</div>",
+  "outline": {"0": "Custom summary"},
+  "comments": {"1": {"heading": "Note", "turn": "Comment"}},
+  "indents": {"2": 1},
+  "notes": {"notes": "Context", "lastUpdated": "2025-11-08T12:00:00Z"}
+}
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "conversationId": "abc123def456...",
+  "shareUrl": "/shared/abc123def456....json",
+  "timestamp": "2025-11-08T12:00:00+00:00"
+}
+```
+
+---
+
+### 6. Styling (`styles.css`)
 
 **Location:** 812 lines of comprehensive CSS  
 **Key Sections:**
@@ -379,6 +485,70 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 
 **Storage:** `ChatWorkspace_{chatId}_notes` with notes text and timestamp
 
+### Feature: Share & Open (URL Parameters)
+
+**Files:** `share.php`, `d-render-chat.js` (lines 888-1359), `index.php` (line 22)  
+**How:**
+
+**Share Functionality:**
+1. **Trigger:** Share button (🔗) in UI, enabled after loading a chat
+2. **Modal Display:** `showShareModal()` creates overlay with generation button
+3. **Data Collection:** Gathers all localStorage data for current chat:
+   - `chatHtml` - Original conversation HTML
+   - `turns` - Parsed turn data (for verification)
+   - `outline` - Custom summaries (if any)
+   - `comments` - Heading & turn comments (if any)
+   - `indents` - Outline indentation levels (if any)
+   - `notes` - Chat notes (if any)
+4. **Server Request:** POST to `share.php?id={currentChatId}` with JSON payload
+5. **Server Processing:**
+   - Validates conversation ID (alphanumeric, 32-128 chars)
+   - Creates `shared/` directory if needed
+   - Saves to `shared/{chatId}.json` with timestamp
+   - Returns success with share URL
+6. **UI Response:** 
+   - Shows success message with shareable link
+   - Auto-copies link to clipboard
+   - Displays formatted URL: `?shared={chatId}`
+
+**Open Functionality (URL Parameters):**
+
+Two URL parameter patterns are supported:
+
+1. **`?shared={chatId}` (Priority 1):**
+   - Fetches `shared/{chatId}.json` from server
+   - Saves all data to localStorage (outline, comments, indents, notes)
+   - Populates HTML textarea if chatHtml exists
+   - Changes URL to `?open={chatId}` (via pushState)
+   - Auto-loads chat after 100ms delay
+   - **Purpose:** First-time access to shared link
+
+2. **`?open={chatId}` (Priority 2):**
+   - Checks localStorage for `ChatWorkspace_{chatId}_html`
+   - If found: Populates textarea and auto-loads chat
+   - If not found: Redirects to `?shared={chatId}` to fetch from server
+   - **Purpose:** Re-opening previously loaded chats (e.g., browser refresh)
+
+**Workflow Example:**
+```
+User A shares → POST to share.php → saved to shared/{id}.json
+User B visits ?shared={id} → fetches JSON → saves to localStorage → changes to ?open={id} → loads chat
+User B refreshes → ?open={id} → loads from localStorage (no server fetch)
+User B clears localStorage → ?open={id} → redirects to ?shared={id} → fetches from server again
+```
+
+**Implementation Details:**
+- `handleUrlParameters()` runs on page load (DOMContentLoaded or immediate)
+- Share button disabled by default, enabled in `loadChat()` (line 100)
+- URL changes use `window.history.pushState()` to avoid page reload
+- Automatic loading uses 100ms `setTimeout()` to ensure DOM is ready
+- Server file validation prevents directory traversal attacks
+
+**Storage:**
+- Server-side: `shared/{chatId}.json` files
+- Client-side: All standard `ChatWorkspace_{chatId}_*` keys
+- Additional: `ChatWorkspace_{chatId}_html` for original HTML persistence
+
 ---
 
 ## 🔄 State Management
@@ -399,6 +569,7 @@ ChatWorkspace_{chatId}_outline   → { [index: number]: string }
 ChatWorkspace_{chatId}_comments  → { [index: number]: { heading: string, turn: string } }
 ChatWorkspace_{chatId}_indents   → { [index: number]: number }  // indent level, 0 = no indent
 ChatWorkspace_{chatId}_notes     → { notes: string, lastUpdated: string }  // ISO timestamp
+ChatWorkspace_{chatId}_html      → string  // Original chat HTML for ?open= URL parameter
 ```
 
 ---
@@ -407,12 +578,11 @@ ChatWorkspace_{chatId}_notes     → { notes: string, lastUpdated: string }  // 
 
 ### Local Testing
 ```bash
-# No build step required - open directly in browser
-open index.php
+# PHP server required for share functionality
+php -S localhost:8000
 
-# Or use a simple HTTP server
-python3 -m http.server 8000
 # Then visit http://localhost:8000
+# Share feature requires write access to ./shared/ directory
 ```
 
 ### Getting Test Data
@@ -422,6 +592,29 @@ python3 -m http.server 8000
 3. Run: `document.querySelector('[data-turn-id]').parentElement.innerHTML`
 4. Copy output
 5. Paste into app textarea
+
+### Testing Share/Open Functionality
+
+**Test Share:**
+1. Load a chat and add customizations (outline edits, comments, notes)
+2. Click "🔗 Share" button
+3. Verify modal appears with "Generate Share Link" button
+4. Click generate and verify success message
+5. Check that `shared/{chatId}.json` file was created
+6. Verify link is copied to clipboard
+
+**Test ?shared= URL:**
+1. Copy the shared link from step 6 above
+2. Open in new incognito window (to ensure fresh localStorage)
+3. Verify chat loads automatically with all customizations
+4. Verify URL changes from `?shared={id}` to `?open={id}`
+5. Check localStorage has all keys populated
+
+**Test ?open= URL:**
+1. In same browser session, refresh the page
+2. Verify chat loads from localStorage (no server fetch)
+3. Clear localStorage and refresh
+4. Verify it falls back to `?shared={id}` and fetches from server
 
 ### Common Development Tasks
 
@@ -477,26 +670,39 @@ python3 -m http.server 8000
 See `README.md` for user-facing roadmap. Developer considerations:
 
 - **Multi-chat Management:** Add chat list sidebar, switch between loaded chats
-- **Export/Import:** JSON download/upload for backup
+- **Export/Import:** JSON download/upload for backup (local alternative to share)
 - **Search:** Full-text search across turns
 - **Syntax Highlighting:** Integrate Prism.js or Highlight.js
 - **Markdown Rendering:** Full GFM support beyond code blocks
 - **Diff View:** Compare conversation versions
-- **Collaborative Features:** Share chats with others (requires backend)
+- **Share Enhancements:** 
+  - Password protection for shared links
+  - Expiration dates for shared files
+  - Share analytics (view count)
+  - Private shares (authentication required)
+  - Edit permissions (allow others to modify customizations)
 
 ---
 
 ## 📚 Dependencies
 
 **Runtime:**
-- None (vanilla JS + Web APIs)
+- None (vanilla JS + Web APIs) for core functionality
+- PHP 7.0+ for share feature (backend API)
 
 **Browser APIs Used:**
 - `DOMParser` - Parse HTML strings
 - `crypto.subtle` - SHA-256 hashing
 - `localStorage` - Persistent storage
-- `Clipboard API` - Copy code blocks
+- `Clipboard API` - Copy code blocks and share links
+- `Fetch API` - Share/open server communication
+- `History API` - URL parameter management (pushState)
 - `IntersectionObserver` - (not currently used, but could optimize rendering)
+
+**Server Requirements (for share feature):**
+- PHP 7.0+ with write permissions to `shared/` directory
+- No database required (file-based storage)
+- No external PHP dependencies
 
 **Browser Support:**
 - Chrome/Edge 90+
@@ -515,6 +721,8 @@ See `README.md` for user-facing roadmap. Developer considerations:
 - Comment system → `d-render-chat.js` (comment functions, middle-late)
 - Preview panel → `d-render-chat.js` (`showMessagePreview`, late-middle)
 - Notes system → `d-render-chat.js` (`loadChatNotes`, `saveChatNotes`, late) + `index.php` (lines 26-33)
+- Share/Open system → `d-render-chat.js` (`handleShareClick`, `showShareModal`, `handleUrlParameters`, lines 888-1359) + `share.php`
+- URL parameter handling → `d-render-chat.js` (`handleUrlParameters`, lines 1237-1359)
 - Styling rules → `styles.css` (organized by feature)
 - localStorage keys → `d-render-chat.js` (persistence functions, late)
 - Code block formatting → `d-render-chat.js` (`formatContentWithCode`, early-middle)
@@ -545,6 +753,7 @@ item.addEventListener('click', (e) => {
 ---
 
 **Last Updated:** 2025-11-08  
-**File Version:** 1.0  
-**Project Status:** Active Development
+**File Version:** 1.1  
+**Project Status:** Active Development  
+**Recent Updates:** Added comprehensive documentation for Share & Open functionality (URL parameters, backend API)
 

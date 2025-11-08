@@ -408,6 +408,8 @@ button:disabled {
   z-index: 5;
 }
 
+.indent-btn,
+.unindent-btn,
 .comment-icon,
 .preview-icon {
   background: rgba(255, 255, 255, 0.95);
@@ -421,9 +423,12 @@ button:disabled {
   line-height: 1;
 }
 
+.indent-btn:hover,
+.unindent-btn:hover,
 .comment-icon:hover,
 .preview-icon:hover {
   background: #667eea;
+  color: white;
   transform: scale(1.1);
 }
 

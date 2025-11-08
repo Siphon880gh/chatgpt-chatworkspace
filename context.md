@@ -50,6 +50,7 @@
 ChatWorkspace_{chatId}           // { fontSize, chatPanelHeight }
 ChatWorkspace_{chatId}_outline   // { [turnIndex]: customSummaryText }
 ChatWorkspace_{chatId}_comments  // { [turnIndex]: { heading: string, turn: string } }
+ChatWorkspace_{chatId}_indents   // { [turnIndex]: indentLevel }
 ```
 
 ---
@@ -177,12 +178,12 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 
 **`renderOutline(turns)`**
 - Creates `.outline-item` divs
-- Loads saved summaries from `localStorage`
-- Loads comments data
+- Loads saved summaries, comments, and indents from `localStorage`
+- Applies indentation styling (2 character width per level)
 - Renders two types of comments:
   - **Heading Comment:** Above label, highlighted callout box
   - **Turn Comment:** Below summary, italic, gray
-- Adds hover icons (🗨️/💬 for comment, 👁 for preview)
+- Adds hover icons (→ indent, ← unindent, 🗨️/💬 for comment, 👁 for preview)
 - Attaches click handlers for navigation
 
 **Editable Summaries:**
@@ -190,7 +191,20 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Saves on blur or Enter key
 - Stores in `ChatWorkspace_{chatId}_outline` localStorage key
 
-#### **Section D: Comments System (middle-late)**
+#### **Section D: Indentation System (middle)**
+
+**`loadIndentsData()` / `saveIndent(turnIndex, level)`**
+- Persists to `ChatWorkspace_{chatId}_indents`
+- Stores indent level (0 = no indent, 1+ = indent levels)
+- Level 0 entries are deleted from storage
+- Triggers `renderOutline()` to update UI
+
+**Indent Controls:**
+- **→ button** - Increases indent level by 1
+- **← button** - Decreases indent level by 1 (minimum 0)
+- Visual indent: 2 character width per level
+
+#### **Section E: Comments System (middle-late)**
 
 **`loadCommentsData()` / `saveComment(turnIndex, headingComment, turnComment)`**
 - Persists to `ChatWorkspace_{chatId}_comments`
@@ -207,7 +221,7 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Closes on Escape or backdrop click
 - Handles legacy string format for backward compatibility
 
-#### **Section E: Preview Panel (late-middle)**
+#### **Section F: Preview Panel (late-middle)**
 
 **`showMessagePreview(turn, index)`**
 - Creates fixed bottom panel (`.preview-panel`)
@@ -221,7 +235,7 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Restores outline margin
 - Closes on Escape or X button
 
-#### **Section F: Navigation & Interactions (late)**
+#### **Section G: Navigation & Interactions (late)**
 
 **`scrollToTurn(index)`**
 - Uses `scrollIntoView()` with smooth behavior
@@ -235,7 +249,7 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Drag to resize chat panel height
 - Saves preference to `ChatWorkspace_{chatId}`
 
-#### **Section G: Persistence (late)**
+#### **Section H: Persistence (late)**
 
 **`loadChatSettings(chatId)` / `saveChatSettings(settings)`**
 - Stores `{ fontSize, chatPanelHeight }` in `ChatWorkspace_{chatId}`
@@ -249,6 +263,7 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 **`resetAllOutlineItems()`**
 - Clears `ChatWorkspace_{chatId}_outline`
 - Clears `ChatWorkspace_{chatId}_comments`
+- Clears `ChatWorkspace_{chatId}_indents`
 - Re-renders with defaults
 
 ---
@@ -289,6 +304,17 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 **File:** `d-render-chat.js` (renderOutline function, middle)  
 **How:** `contentEditable` + blur/Enter event listeners  
 **Storage:** `ChatWorkspace_{chatId}_outline` with turn index as key
+
+### Feature: Outline Indentation
+
+**File:** `d-render-chat.js` (indentation functions, middle)  
+**How:**
+- Indent/unindent buttons (→/←) control nesting level
+- Each level adds 2 character width of left margin
+- Stored per-turn in localStorage
+- Visual hierarchy for organizing conversation flow
+
+**Storage:** `ChatWorkspace_{chatId}_indents` with turn index as key, value is indent level (0+)
 
 ### Feature: Comments (Two Types)
 
@@ -342,6 +368,7 @@ let isResizing = false;          // Resize drag state
 ChatWorkspace_{chatId}           → { fontSize: number, chatPanelHeight: number }
 ChatWorkspace_{chatId}_outline   → { [index: number]: string }
 ChatWorkspace_{chatId}_comments  → { [index: number]: { heading: string, turn: string } }
+ChatWorkspace_{chatId}_indents   → { [index: number]: number }  // indent level, 0 = no indent
 ```
 
 ---

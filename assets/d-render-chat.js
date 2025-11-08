@@ -204,13 +204,20 @@ function renderOutline(turns) {
     }
   }
 
-  // Load saved outline data and comments
+  // Load saved outline data, comments, and indents
   const outlineData = loadOutlineData();
   const commentsData = loadCommentsData();
+  const indentsData = loadIndentsData();
 
   turns.forEach((turn, index) => {
     const item = document.createElement('div');
     item.className = `outline-item ${turn.type}`;
+    
+    // Apply indentation
+    const indentLevel = indentsData[index] || 0;
+    if (indentLevel > 0) {
+      item.style.marginLeft = `${indentLevel * 2}ch`;
+    }
 
     const label = document.createElement('div');
     label.className = 'outline-label';
@@ -248,6 +255,30 @@ function renderOutline(turns) {
     const iconsContainer = document.createElement('div');
     iconsContainer.className = 'outline-icons';
 
+    // Indent button
+    const indentBtn = document.createElement('button');
+    indentBtn.className = 'indent-btn';
+    indentBtn.innerHTML = '→';
+    indentBtn.title = 'Indent';
+    indentBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const currentLevel = indentsData[index] || 0;
+      saveIndent(index, currentLevel + 1);
+    });
+
+    // Unindent button
+    const unindentBtn = document.createElement('button');
+    unindentBtn.className = 'unindent-btn';
+    unindentBtn.innerHTML = '←';
+    unindentBtn.title = 'Unindent';
+    unindentBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const currentLevel = indentsData[index] || 0;
+      if (currentLevel > 0) {
+        saveIndent(index, currentLevel - 1);
+      }
+    });
+
     // Comment icon
     const commentIcon = document.createElement('button');
     commentIcon.className = 'comment-icon';
@@ -284,6 +315,8 @@ function renderOutline(turns) {
       showMessagePreview(turn, index);
     });
 
+    iconsContainer.appendChild(indentBtn);
+    iconsContainer.appendChild(unindentBtn);
     iconsContainer.appendChild(commentIcon);
     iconsContainer.appendChild(previewIcon);
 
@@ -346,6 +379,49 @@ function renderOutline(turns) {
 }
 
 let currentPreviewIndex = null;
+
+/**
+ * Load indents data for the current chat
+ */
+function loadIndentsData() {
+  if (!currentChatId) return {};
+  
+  const indentsKey = `ChatWorkspace_${currentChatId}_indents`;
+  const saved = localStorage.getItem(indentsKey);
+  
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to parse saved indents data:', e);
+      return {};
+    }
+  }
+  
+  return {};
+}
+
+/**
+ * Save indent level for a specific turn
+ */
+function saveIndent(turnIndex, level) {
+  if (!currentChatId) return;
+  
+  const indentsKey = `ChatWorkspace_${currentChatId}_indents`;
+  const indentsData = loadIndentsData();
+  
+  if (level > 0) {
+    indentsData[turnIndex] = level;
+  } else {
+    delete indentsData[turnIndex];
+  }
+  
+  localStorage.setItem(indentsKey, JSON.stringify(indentsData));
+  console.log(`Saved indent for turn ${turnIndex}: ${level}`);
+  
+  // Re-render outline to update display
+  renderOutline(turns);
+}
 
 /**
  * Load comments data for the current chat
@@ -722,7 +798,7 @@ function saveOutlineItem(turnIndex, text) {
 }
 
 /**
- * Reset ALL outline items to default text and remove all comments
+ * Reset ALL outline items to default text and remove all comments and indents
  */
 function resetAllOutlineItems() {
   if (!currentChatId || turns.length === 0) return;
@@ -736,6 +812,11 @@ function resetAllOutlineItems() {
   const commentsKey = `ChatWorkspace_${currentChatId}_comments`;
   localStorage.removeItem(commentsKey);
   console.log('Removed all comments');
+  
+  // Clear all indents from localStorage
+  const indentsKey = `ChatWorkspace_${currentChatId}_indents`;
+  localStorage.removeItem(indentsKey);
+  console.log('Removed all indents');
   
   // Re-render the outline with defaults (using existing turns data)
   renderOutline(turns);

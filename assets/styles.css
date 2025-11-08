@@ -963,6 +963,12 @@ button:disabled {
   transform: translateX(4px);
 }
 
+.outline-item.scroll-highlighted {
+  background: rgba(102, 126, 234, 0.08) !important;
+  border-left-color: #667eea !important;
+  transform: translateX(2px);
+}
+
 #outlineContent {
   transition: margin-bottom 0.3s ease-out;
 }

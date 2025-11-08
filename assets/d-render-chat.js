@@ -1,5 +1,6 @@
 let currentChatId = null;
 let turns = [];
+let scrollObserver = null; // For tracking which turn is in view
 
 /**
  * Parse pasted HTML and extract conversation turns
@@ -156,6 +157,84 @@ function renderChat(turns) {
     turnDiv.appendChild(content);
     chatContent.appendChild(turnDiv);
   });
+  
+  // Set up scroll tracking to highlight outline items
+  setupScrollTracking();
+}
+
+/**
+ * Set up IntersectionObserver to track which chat turn is in view
+ * and highlight the corresponding outline item
+ */
+function setupScrollTracking() {
+  // Clean up existing observer if any
+  if (scrollObserver) {
+    scrollObserver.disconnect();
+  }
+  
+  const chatContent = document.getElementById('chatContent');
+  if (!chatContent) return;
+  
+  // Map to track which turns are currently visible
+  const visibleTurns = new Map();
+  
+  // Create intersection observer
+  scrollObserver = new IntersectionObserver((entries) => {
+    // Update visibility map
+    entries.forEach(entry => {
+      const turnIndex = parseInt(entry.target.id.replace('turn-', ''));
+      if (entry.isIntersecting) {
+        visibleTurns.set(turnIndex, entry.intersectionRatio);
+      } else {
+        visibleTurns.delete(turnIndex);
+      }
+    });
+    
+    // Find the most visible turn (highest intersection ratio)
+    let mostVisibleTurn = -1;
+    let highestRatio = 0;
+    
+    visibleTurns.forEach((ratio, turnIndex) => {
+      if (ratio > highestRatio) {
+        highestRatio = ratio;
+        mostVisibleTurn = turnIndex;
+      }
+    });
+    
+    // Update outline highlighting
+    updateOutlineHighlight(mostVisibleTurn);
+  }, {
+    root: chatContent,
+    threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+    rootMargin: '-10% 0px -10% 0px' // Focus on center of viewport
+  });
+  
+  // Observe all chat turns
+  const turnElements = chatContent.querySelectorAll('.chat-turn');
+  turnElements.forEach(turn => {
+    scrollObserver.observe(turn);
+  });
+}
+
+/**
+ * Update outline highlighting based on the currently visible turn
+ */
+function updateOutlineHighlight(turnIndex) {
+  const outlineItems = document.querySelectorAll('.outline-item');
+  
+  // Remove existing scroll-based highlight from all items
+  outlineItems.forEach(item => {
+    item.classList.remove('scroll-highlighted');
+  });
+  
+  // Add highlight to the current turn's outline item (if valid)
+  if (turnIndex >= 0 && turnIndex < outlineItems.length) {
+    // Don't override the preview highlighting
+    const outlineItem = outlineItems[turnIndex];
+    if (!outlineItem.classList.contains('previewing')) {
+      outlineItem.classList.add('scroll-highlighted');
+    }
+  }
 }
 
 /**

@@ -129,8 +129,14 @@ function renderChat(turns) {
     const content = document.createElement('div');
     content.className = 'turn-content';
     
-    // Render content with code blocks
-    content.innerHTML = formatContentWithCode(turn.content, turn.rawHtml);
+    // Try to extract and use ChatGPT's formatted HTML if available
+    const formattedHTML = extractFormattedContent(turn.rawHtml);
+    if (formattedHTML) {
+      content.innerHTML = formattedHTML;
+    } else {
+      // Fallback to markdown parsing for plain text
+      content.innerHTML = formatContentWithCode(turn.content, turn.rawHtml);
+    }
 
     turnDiv.appendChild(label);
     turnDiv.appendChild(content);
@@ -139,7 +145,54 @@ function renderChat(turns) {
 }
 
 /**
- * Format content with proper code block styling
+ * Extract formatted HTML content from ChatGPT's message structure
+ */
+function extractFormattedContent(rawHtml) {
+  if (!rawHtml) return null;
+  
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, 'text/html');
+    
+    // Look for ChatGPT's markdown container
+    let markdownDiv = doc.querySelector('.markdown');
+    if (markdownDiv) {
+      let html = markdownDiv.innerHTML;
+      // Remove escaped newlines that appear as literal \n in the HTML
+      html = html.replace(/\\n/g, '');
+      return html;
+    }
+    
+    // Look for whitespace-pre-wrap div (user messages)
+    let preWrapDiv = doc.querySelector('.whitespace-pre-wrap');
+    if (preWrapDiv) {
+      // Escape HTML and convert newlines to br
+      const text = preWrapDiv.textContent;
+      return escapeAndFormat(text);
+    }
+    
+    // If no special structure found, return null to use fallback
+    return null;
+  } catch (e) {
+    console.warn('Failed to extract formatted content:', e);
+    return null;
+  }
+}
+
+/**
+ * Escape HTML and format text
+ */
+function escapeAndFormat(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  let escaped = div.innerHTML;
+  // Convert newlines to br
+  escaped = escaped.replace(/\n/g, '<br>');
+  return escaped;
+}
+
+/**
+ * Format content with proper markdown styling (like ChatGPT)
  */
 function formatContentWithCode(text, rawHtml) {
   // Escape HTML to prevent injection
@@ -155,25 +208,160 @@ function formatContentWithCode(text, rawHtml) {
   // Counter for unique IDs
   let codeBlockCounter = 0;
   
-  // Handle triple-backtick code blocks
+  // Handle triple-backtick code blocks FIRST (before processing other markdown)
   formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
     const language = lang || 'text';
     const blockId = `code-block-${Date.now()}-${codeBlockCounter++}`;
     const escapedCode = code.trim();
+    return `<<<CODE_BLOCK:${blockId}:${language}:${btoa(escapedCode)}>>>`;
+  });
+  
+  // Handle inline code with single backticks (protect from other markdown processing)
+  const inlineCodeBlocks = [];
+  formatted = formatted.replace(/`([^`\n]+)`/g, (match, code) => {
+    const id = inlineCodeBlocks.length;
+    inlineCodeBlocks.push(code);
+    return `<<<INLINE_CODE:${id}>>>`;
+  });
+  
+  // Split into paragraphs (double newlines create paragraph breaks)
+  const paragraphs = formatted.split(/\n\n+/);
+  
+  formatted = paragraphs.map(paragraph => {
+    // Skip if it's a code block placeholder
+    if (paragraph.includes('<<<CODE_BLOCK:')) {
+      return paragraph;
+    }
+    
+    let lines = paragraph.split('\n');
+    let processedLines = [];
+    let inList = false;
+    let listItems = [];
+    let listType = null; // 'ul' or 'ol'
+    
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+      
+      // Handle headers (# ## ### etc)
+      if (/^(#{1,6})\s+(.+)$/.test(line)) {
+        if (inList) {
+          processedLines.push(listType === 'ol' ? `<ol>${listItems.join('')}</ol>` : `<ul>${listItems.join('')}</ul>`);
+          listItems = [];
+          inList = false;
+        }
+        line = line.replace(/^(#{1,6})\s+(.+)$/, (match, hashes, content) => {
+          const level = hashes.length;
+          return `<h${level} class="md-h${level}">${content}</h${level}>`;
+        });
+        processedLines.push(line);
+        continue;
+      }
+      
+      // Handle blockquotes (> text)
+      if (/^>\s+(.+)$/.test(line)) {
+        if (inList) {
+          processedLines.push(listType === 'ol' ? `<ol>${listItems.join('')}</ol>` : `<ul>${listItems.join('')}</ul>`);
+          listItems = [];
+          inList = false;
+        }
+        line = line.replace(/^>\s+(.+)$/, '<blockquote class="md-blockquote">$1</blockquote>');
+        processedLines.push(line);
+        continue;
+      }
+      
+      // Handle unordered lists (- or * at start)
+      if (/^[\-\*]\s+(.+)$/.test(line)) {
+        const content = line.replace(/^[\-\*]\s+(.+)$/, '$1');
+        if (!inList || listType !== 'ul') {
+          if (inList) {
+            processedLines.push(`<ol>${listItems.join('')}</ol>`);
+            listItems = [];
+          }
+          inList = true;
+          listType = 'ul';
+        }
+        listItems.push(`<li>${content}</li>`);
+        continue;
+      }
+      
+      // Handle ordered lists (1. 2. etc)
+      if (/^\d+\.\s+(.+)$/.test(line)) {
+        const content = line.replace(/^\d+\.\s+(.+)$/, '$1');
+        if (!inList || listType !== 'ol') {
+          if (inList) {
+            processedLines.push(`<ul>${listItems.join('')}</ul>`);
+            listItems = [];
+          }
+          inList = true;
+          listType = 'ol';
+        }
+        listItems.push(`<li>${content}</li>`);
+        continue;
+      }
+      
+      // Handle horizontal rules (--- or ***)
+      if (/^[\-\*]{3,}$/.test(line.trim())) {
+        if (inList) {
+          processedLines.push(listType === 'ol' ? `<ol>${listItems.join('')}</ol>` : `<ul>${listItems.join('')}</ul>`);
+          listItems = [];
+          inList = false;
+        }
+        processedLines.push('<hr class="md-hr">');
+        continue;
+      }
+      
+      // Close any open list if we hit a regular line
+      if (inList && line.trim() !== '') {
+        processedLines.push(listType === 'ol' ? `<ol>${listItems.join('')}</ol>` : `<ul>${listItems.join('')}</ul>`);
+        listItems = [];
+        inList = false;
+      }
+      
+      // Regular line
+      if (line.trim() !== '') {
+        processedLines.push(line);
+      }
+    }
+    
+    // Close any remaining open list
+    if (inList) {
+      processedLines.push(listType === 'ol' ? `<ol>${listItems.join('')}</ol>` : `<ul>${listItems.join('')}</ul>`);
+    }
+    
+    return processedLines.join('<br>');
+  }).join('</p><p>');
+  
+  // Wrap in paragraph tags
+  formatted = `<p>${formatted}</p>`;
+  
+  // Handle bold text (**text** or __text__)
+  formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  formatted = formatted.replace(/__(.+?)__/g, '<strong>$1</strong>');
+  
+  // Handle italic text (*text* or _text_) - be careful not to match * in lists
+  formatted = formatted.replace(/(?<!\*)\*(?!\*)([^\*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+  formatted = formatted.replace(/(?<!_)_(?!_)([^_\n]+?)_(?!_)/g, '<em>$1</em>');
+  
+  // Restore inline code blocks
+  formatted = formatted.replace(/<<<INLINE_CODE:(\d+)>>>/g, (match, id) => {
+    return `<code class="inline-code">${inlineCodeBlocks[parseInt(id)]}</code>`;
+  });
+  
+  // Restore code blocks
+  formatted = formatted.replace(/<<<CODE_BLOCK:([^:]+):([^:]+):([^>]+)>>>/g, (match, blockId, language, encodedCode) => {
+    const code = atob(encodedCode);
     return `<div class="code-block-wrapper">
       <div class="code-block-header">
         <span class="code-language">${language}</span>
         <button class="copy-code-btn" onclick="copyCode('${blockId}')" title="Copy code">📋 Copy</button>
       </div>
-      <pre class="code-block"><code id="${blockId}" class="language-${language}">${escapedCode}</code></pre>
+      <pre class="code-block"><code id="${blockId}" class="language-${language}">${code}</code></pre>
     </div>`;
   });
   
-  // Handle inline code with single backticks
-  formatted = formatted.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
-  
-  // Convert newlines to <br> for proper display
-  formatted = formatted.replace(/\n/g, '<br>');
+  // Clean up empty paragraphs
+  formatted = formatted.replace(/<p>\s*<\/p>/g, '');
+  formatted = formatted.replace(/<p>(<br>)+<\/p>/g, '');
   
   return formatted;
 }

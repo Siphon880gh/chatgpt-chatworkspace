@@ -167,14 +167,29 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 **`renderChat(turns)`**
 - Creates `.chat-turn` divs for each message
 - Adds role labels (👤 User / 🤖 Assistant)
-- Calls `formatContentWithCode()` for syntax highlighting
+- Attempts to extract ChatGPT's native formatted HTML via `extractFormattedContent()`
+- Falls back to `formatContentWithCode()` for plain text/markdown parsing
 
-**`formatContentWithCode(text, rawHtml)`**
+**`extractFormattedContent(rawHtml)`**
+- Primary rendering method for ChatGPT HTML exports
+- Looks for `.markdown` container (assistant messages with rich formatting)
+- Looks for `.whitespace-pre-wrap` divs (user messages)
+- Preserves ChatGPT's native HTML structure (p, ul, ol, li, strong, em, h1-h6, etc.)
+- Strips escaped newlines (`\\n`) between HTML tags
+- Returns null if no ChatGPT structure found (triggers fallback)
+
+**`formatContentWithCode(text, rawHtml)` - Fallback**
+- Used when ChatGPT structure not detected
 - Escapes HTML to prevent injection
+- Parses markdown syntax (bold, italic, headers, lists, blockquotes, etc.)
 - Detects triple-backtick code blocks: ` ```language\ncode\n``` `
 - Wraps in `.code-block-wrapper` with copy button
 - Handles inline code with single backticks
-- Converts `\n` to `<br>` for display
+- Creates proper paragraph and list structures
+
+**`escapeAndFormat(text)`**
+- Helper for escaping HTML entities
+- Converts newlines to `<br>` tags
 
 **`copyCode(blockId)`**
 - Uses Clipboard API
@@ -398,18 +413,26 @@ Content-Type: application/json
 1. **Global Styles (top)** - Reset, body, header gradient
 2. **Input Section (early)** - Textarea, load button
 3. **Panel System (early-middle)** - `.panel`, `.panel-header`, `.panel-content`
-4. **Chat Turns (middle)** - Color-coded user/assistant, code blocks
-5. **Outline Items (middle)** - Hover effects, editable summaries, icons
-6. **Comment System (middle-late)** - Display styles, editor modal
-7. **Preview Panel (late)** - Fixed bottom, slide-up animation
-8. **Controls (late)** - Zoom buttons, resize handle, reset button
-9. **Responsive (end)** - Mobile breakpoints
+4. **Chat Turns (middle)** - Color-coded user/assistant, code blocks, markdown formatting
+5. **Markdown Styles (middle)** - Headers (h1-h6), lists (ul/ol/li), blockquotes, paragraphs, bold/italic
+6. **ChatGPT Data Attributes (middle)** - Spacing for `[data-start]`, `[data-is-last-node]` attributes
+7. **Outline Items (middle)** - Hover effects, editable summaries, icons
+8. **Comment System (middle-late)** - Display styles, editor modal
+9. **Preview Panel (late)** - Fixed bottom, slide-up animation
+10. **Controls (late)** - Zoom buttons, resize handle, reset button
+11. **Responsive (end)** - Mobile breakpoints
 
 **Design System:**
 - Primary gradient: `#667eea → #764ba2`
 - User messages: `#e3f2fd` (light blue)
 - Assistant messages: `#f3e5f5` (light purple)
 - Code blocks: Dark theme (`#1e1e1e` background)
+- Markdown: Proper spacing, list indentation, header hierarchy
+
+**ChatGPT Fidelity:**
+- Preserves native HTML structure from ChatGPT exports (`.markdown` container)
+- Supports `data-start`, `data-end`, `data-is-last-node` attributes for accurate spacing
+- Renders paragraphs, lists, headers, bold, italic, blockquotes with ChatGPT-like styling
 
 ---
 
@@ -456,13 +479,20 @@ Content-Type: application/json
 - Disables scroll-to-turn while open
 - Highlights current outline item
 
-### Feature: Code Block Formatting
+### Feature: ChatGPT-Fidelity Content Rendering
 
-**File:** `d-render-chat.js` (formatContentWithCode, early-middle)  
+**Files:** `d-render-chat.js` (extractFormattedContent, renderChat), `styles.css` (markdown styles)
 **How:**
-- Regex detects ` ```lang\ncode\n``` `
-- Creates header with language tag + copy button
-- Dark theme styling in CSS
+- **Primary Method:** Extracts and preserves ChatGPT's native HTML structure from exports
+  - Detects `.markdown` container with full formatting (p, ul, ol, li, strong, em, h1-h6, etc.)
+  - Removes escaped newlines (`\\n`) that appear in ChatGPT exports
+  - Maintains all data attributes (`data-start`, `data-end`, etc.) for proper spacing
+- **Fallback Method:** Markdown parser for plain text
+  - Parses markdown syntax (bold, italic, headers, lists, blockquotes)
+  - Detects triple-backtick code blocks: ` ```lang\ncode\n``` `
+  - Creates proper HTML structure from markdown
+- **Code Blocks:** Header with language tag + copy button, dark theme styling
+- **Result:** Chat bubbles render with full fidelity matching ChatGPT's interface
 
 ### Feature: Zoom & Resize
 
@@ -717,6 +747,7 @@ See `README.md` for user-facing roadmap. Developer considerations:
 **Where to find...**
 
 - Chat parsing logic → `d-render-chat.js` (`collectTurns`, near top)
+- Chat rendering logic → `d-render-chat.js` (`renderChat`, `extractFormattedContent`, early)
 - Hashing implementation → `c-hash-chat.js` (`hashChat`, throughout)
 - Comment system → `d-render-chat.js` (comment functions, middle-late)
 - Preview panel → `d-render-chat.js` (`showMessagePreview`, late-middle)
@@ -725,7 +756,8 @@ See `README.md` for user-facing roadmap. Developer considerations:
 - URL parameter handling → `d-render-chat.js` (`handleUrlParameters`, lines 1237-1359)
 - Styling rules → `styles.css` (organized by feature)
 - localStorage keys → `d-render-chat.js` (persistence functions, late)
-- Code block formatting → `d-render-chat.js` (`formatContentWithCode`, early-middle)
+- ChatGPT HTML extraction → `d-render-chat.js` (`extractFormattedContent`, early)
+- Markdown parsing (fallback) → `d-render-chat.js` (`formatContentWithCode`, early-middle)
 
 **Common code patterns:**
 
@@ -753,7 +785,7 @@ item.addEventListener('click', (e) => {
 ---
 
 **Last Updated:** 2025-11-08  
-**File Version:** 1.1  
+**File Version:** 1.2  
 **Project Status:** Active Development  
-**Recent Updates:** Added comprehensive documentation for Share & Open functionality (URL parameters, backend API)
+**Recent Updates:** Added ChatGPT-fidelity rendering - now extracts and preserves native HTML structure from ChatGPT exports for accurate formatting (headers, lists, bold/italic, blockquotes, code blocks, etc.)
 

@@ -8,7 +8,7 @@
 
 **Purpose:**  
 - Import ChatGPT conversations for better navigation and organization
-- Add personal notes/comments to specific turns
+- Add personal notes/comments to specific turns and overall chat context
 - Customize outline summaries for easier reference
 - Search/navigate long conversations efficiently
 
@@ -51,6 +51,7 @@ ChatWorkspace_{chatId}           // { fontSize, chatPanelHeight }
 ChatWorkspace_{chatId}_outline   // { [turnIndex]: customSummaryText }
 ChatWorkspace_{chatId}_comments  // { [turnIndex]: { heading: string, turn: string } }
 ChatWorkspace_{chatId}_indents   // { [turnIndex]: indentLevel }
+ChatWorkspace_{chatId}_notes     // { notes: string, lastUpdated: ISO timestamp }
 ```
 
 ---
@@ -59,15 +60,15 @@ ChatWorkspace_{chatId}_indents   // { [turnIndex]: indentLevel }
 
 ```
 /Users/wengffung/dev/web/xny/chat/
-├── index.html                  (~90 lines) - Main UI structure
+├── index.php                  (~102 lines) - Main UI structure (HTML input, notes textarea, panels)
 ├── README.md                   (~191 lines) - User-facing documentation
 ├── context.md                  (this file) - Developer documentation
 └── assets/
     ├── a-load-chat.js          (2 lines) - Console snippet to extract ChatGPT HTML
     ├── b-store-turns.js        (32 lines) - Standalone turn collector (not used in main flow)
     ├── c-hash-chat.js          (~90 lines) - SHA-256 hashing utilities
-    ├── d-render-chat.js        (812 lines) - Core application logic
-    └── styles.css              (812 lines) - All styling (gradients, panels, modals)
+    ├── d-render-chat.js        (1075 lines) - Core application logic
+    └── styles.css              (1003 lines) - All styling (gradients, panels, modals)
 ```
 
 ---
@@ -110,7 +111,7 @@ document.querySelector("[data-turn-id]").parentElement.innerHTML
 
 ### 3. Chat Hashing (`c-hash-chat.js`)
 
-**Location:** Loaded in `index.html` before `d-render-chat.js`  
+**Location:** Loaded in `index.php` before `d-render-chat.js`  
 **Purpose:** Generate deterministic unique IDs for conversations
 
 **Main Functions (throughout file):**
@@ -136,7 +137,7 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 
 ### 4. Main Application Logic (`d-render-chat.js`)
 
-**Location:** Core 812-line file loaded in `index.html`  
+**Location:** Core 812-line file loaded in `index.php`  
 **Purpose:** All UI rendering, interactions, persistence
 
 #### **Section A: Parsing & Loading (near top)**
@@ -266,6 +267,21 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Clears `ChatWorkspace_{chatId}_indents`
 - Re-renders with defaults
 
+#### **Section I: Notes System (late)**
+
+**`loadChatNotes(chatId)` / `saveChatNotes()`**
+- Persists to `ChatWorkspace_{chatId}_notes`
+- Stores `{ notes: string, lastUpdated: ISO timestamp }`
+- Auto-saves with 500ms debounce after user stops typing
+- Loaded automatically when chat is loaded (line ~96 in `loadChat()`)
+- Independent of outline/comments system
+
+**UI Location:**
+- Below HTML input textarea in main interface
+- Labeled "📝 Notes (Optional)"
+- Placeholder suggests use cases (URL, goals, context)
+- Visible before and after loading chat
+
 ---
 
 ### 5. Styling (`styles.css`)
@@ -350,6 +366,19 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Panel height: Drag handle adjusts flexbox `flex: 0 0 {height}px`
 - Both persist to `ChatWorkspace_{chatId}`
 
+### Feature: Chat Notes
+
+**Files:** `index.php` (lines 26-33), `d-render-chat.js` (notes functions, middle-late)  
+**How:**
+- Optional textarea below chat HTML input for adding context/metadata
+- Persists per chat using `ChatWorkspace_{chatId}_notes` key
+- Auto-saves with 500ms debounce after typing stops
+- Stored as JSON: `{ notes: string, lastUpdated: ISO timestamp }`
+- Loaded automatically when chat is loaded
+- Use cases: Original chat URL, goals, project context, tags, etc.
+
+**Storage:** `ChatWorkspace_{chatId}_notes` with notes text and timestamp
+
 ---
 
 ## 🔄 State Management
@@ -369,6 +398,7 @@ ChatWorkspace_{chatId}           → { fontSize: number, chatPanelHeight: number
 ChatWorkspace_{chatId}_outline   → { [index: number]: string }
 ChatWorkspace_{chatId}_comments  → { [index: number]: { heading: string, turn: string } }
 ChatWorkspace_{chatId}_indents   → { [index: number]: number }  // indent level, 0 = no indent
+ChatWorkspace_{chatId}_notes     → { notes: string, lastUpdated: string }  // ISO timestamp
 ```
 
 ---
@@ -378,7 +408,7 @@ ChatWorkspace_{chatId}_indents   → { [index: number]: number }  // indent leve
 ### Local Testing
 ```bash
 # No build step required - open directly in browser
-open index.html
+open index.php
 
 # Or use a simple HTTP server
 python3 -m http.server 8000
@@ -402,7 +432,7 @@ python3 -m http.server 8000
 - Save when data changes
 
 **Add new panel:**
-- Create `.panel` div in `index.html`
+- Create `.panel` div in `index.php`
 - Add panel-specific styles in `styles.css`
 - Implement render function in `d-render-chat.js`
 
@@ -421,7 +451,7 @@ python3 -m http.server 8000
 
 **LocalStorage Limits:**
 - ~5-10MB per domain (browser-dependent)
-- Each chat stores: settings (~100 bytes), outline (~2KB), comments (~5KB)
+- Each chat stores: settings (~100 bytes), outline (~2KB), comments (~5KB), notes (~1-5KB)
 - All keys prefixed with `ChatWorkspace_{chatId}` for easy identification
 - Estimated capacity: ~500-1000 chats before hitting limits
 
@@ -484,6 +514,7 @@ See `README.md` for user-facing roadmap. Developer considerations:
 - Hashing implementation → `c-hash-chat.js` (`hashChat`, throughout)
 - Comment system → `d-render-chat.js` (comment functions, middle-late)
 - Preview panel → `d-render-chat.js` (`showMessagePreview`, late-middle)
+- Notes system → `d-render-chat.js` (`loadChatNotes`, `saveChatNotes`, late) + `index.php` (lines 26-33)
 - Styling rules → `styles.css` (organized by feature)
 - localStorage keys → `d-render-chat.js` (persistence functions, late)
 - Code block formatting → `d-render-chat.js` (`formatContentWithCode`, early-middle)

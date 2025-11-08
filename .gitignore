@@ -1,0 +1,17 @@
+# Shared conversation files (may contain sensitive data)
+shared/*.json
+
+# Keep the directory but ignore contents
+!shared/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+

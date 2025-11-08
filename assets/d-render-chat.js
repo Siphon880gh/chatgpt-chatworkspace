@@ -80,6 +80,14 @@ async function loadChat() {
     // Generate unique hash for this chat
     currentChatId = await hashChat(turns);
     console.log('Chat ID:', currentChatId);
+    
+    // Update URL to ?open={chatId}
+    const newUrl = `${window.location.pathname}?open=${currentChatId}`;
+    window.history.pushState({}, '', newUrl);
+    
+    // Save the chat HTML to localStorage for this chat
+    const chatHtmlKey = `ChatWorkspace_${currentChatId}_html`;
+    localStorage.setItem(chatHtmlKey, input);
 
     // Load any saved settings for this chat
     loadChatSettings(currentChatId);
@@ -922,18 +930,169 @@ function showShareModal() {
   modalBody.className = 'share-modal-body';
   
   const description = document.createElement('p');
-  description.textContent = 'Share this chat with others';
+  description.className = 'share-description';
+  description.textContent = 'Generate a shareable link with all your customizations';
+  
+  const statusDiv = document.createElement('div');
+  statusDiv.className = 'share-status';
+  statusDiv.style.display = 'none';
   
   const shareButton = document.createElement('button');
   shareButton.className = 'share-modal-share-btn';
   shareButton.textContent = '🔗 Generate Share Link';
-  shareButton.addEventListener('click', () => {
-    // Placeholder for future functionality
-    console.log('Share button clicked');
+  shareButton.addEventListener('click', async () => {
+    try {
+      shareButton.disabled = true;
+      shareButton.textContent = '⏳ Generating...';
+      statusDiv.style.display = 'none';
+      
+      // Collect all data from localStorage and current state
+      const payload = {};
+      
+      // Get the chat HTML
+      const chatHtml = document.getElementById('htmlInput').value.trim();
+      if (chatHtml) {
+        payload.chatHtml = chatHtml;
+      }
+      
+      // Get turns data (the parsed conversation)
+      if (turns && turns.length > 0) {
+        payload.turns = turns;
+      }
+      
+      // Get outline data
+      const outline = loadOutlineData();
+      if (outline && Object.keys(outline).length > 0) {
+        payload.outline = outline;
+      }
+      
+      // Get comments data
+      const comments = loadCommentsData();
+      if (comments && Object.keys(comments).length > 0) {
+        payload.comments = comments;
+      }
+      
+      // Get indents data
+      const indents = loadIndentsData();
+      if (indents && Object.keys(indents).length > 0) {
+        payload.indents = indents;
+      }
+      
+      // Get notes data
+      const notesKey = `ChatWorkspace_${currentChatId}_notes`;
+      const savedNotes = localStorage.getItem(notesKey);
+      if (savedNotes) {
+        try {
+          const notesData = JSON.parse(savedNotes);
+          if (notesData && notesData.notes) {
+            payload.notes = notesData;
+          }
+        } catch (e) {
+          console.warn('Failed to parse notes:', e);
+        }
+      }
+      
+      // Send POST request to share.php
+      const response = await fetch(`share.php?id=${currentChatId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // Construct share URL with ?shared= parameter
+        const shareUrl = `${window.location.origin}${window.location.pathname}?shared=${result.conversationId}`;
+        
+        // Hide the generate button and description
+        shareButton.style.display = 'none';
+        description.style.display = 'none';
+        
+        // Show success status
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = `
+          <div class="share-success-icon">✓</div>
+          <h3 class="share-success-title">Share Link Created!</h3>
+          <p class="share-success-text">Your chat is ready to share with all customizations</p>
+          <div class="share-link-container">
+            <input type="text" class="share-link-input" value="${shareUrl}" readonly>
+            <button class="share-copy-btn" onclick="event.stopPropagation();">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy
+            </button>
+          </div>
+          <div class="share-copied-message">📋 Link copied to clipboard!</div>
+        `;
+        
+        // Copy link to clipboard automatically
+        await navigator.clipboard.writeText(shareUrl);
+        
+        // Add copy button functionality
+        const copyBtn = statusDiv.querySelector('.share-copy-btn');
+        const linkInput = statusDiv.querySelector('.share-link-input');
+        const copiedMsg = statusDiv.querySelector('.share-copied-message');
+        
+        copyBtn.addEventListener('click', async () => {
+          await navigator.clipboard.writeText(shareUrl);
+          linkInput.select();
+          copyBtn.classList.add('copied');
+          copyBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Copied!
+          `;
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = `
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy
+            `;
+          }, 2000);
+        });
+        
+      } else {
+        throw new Error(result.error || 'Failed to create share link');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      
+      // Hide the generate button and show error
+      shareButton.style.display = 'none';
+      description.style.display = 'none';
+      
+      statusDiv.style.display = 'block';
+      statusDiv.innerHTML = `
+        <div class="share-error-icon">✕</div>
+        <h3 class="share-error-title">Share Failed</h3>
+        <p class="share-error-text">${error.message}</p>
+        <button class="share-retry-btn">Try Again</button>
+      `;
+      
+      // Add retry button functionality
+      const retryBtn = statusDiv.querySelector('.share-retry-btn');
+      retryBtn.addEventListener('click', () => {
+        statusDiv.style.display = 'none';
+        shareButton.style.display = 'block';
+        description.style.display = 'block';
+        shareButton.disabled = false;
+        shareButton.textContent = '🔗 Generate Share Link';
+      });
+    }
   });
   
   modalBody.appendChild(description);
   modalBody.appendChild(shareButton);
+  modalBody.appendChild(statusDiv);
   
   modalContent.appendChild(modalHeader);
   modalContent.appendChild(modalBody);
@@ -1071,4 +1230,131 @@ document.addEventListener('mouseup', () => {
     document.body.style.userSelect = '';
   }
 });
+
+/**
+ * Handle URL parameters on page load
+ */
+async function handleUrlParameters() {
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  // Check for ?shared={chatId} first (takes priority)
+  if (urlParams.has('shared')) {
+    const chatId = urlParams.get('shared');
+    console.log('Loading shared chat:', chatId);
+    
+    try {
+      // Fetch the shared data
+      const response = await fetch(`shared/${chatId}.json`);
+      
+      if (!response.ok) {
+        throw new Error('Shared chat not found');
+      }
+      
+      const sharedData = await response.json();
+      
+      // Save to localStorage
+      if (sharedData.data) {
+        // Save chat HTML to textarea and localStorage if it exists
+        if (sharedData.data.chatHtml) {
+          const htmlInput = document.getElementById('htmlInput');
+          if (htmlInput) {
+            htmlInput.value = sharedData.data.chatHtml;
+          }
+          // Save to localStorage for future ?open= access
+          const chatHtmlKey = `ChatWorkspace_${chatId}_html`;
+          localStorage.setItem(chatHtmlKey, sharedData.data.chatHtml);
+        }
+        
+        // Save outline
+        if (sharedData.data.outline) {
+          const outlineKey = `ChatWorkspace_${chatId}_outline`;
+          localStorage.setItem(outlineKey, JSON.stringify(sharedData.data.outline));
+        }
+        
+        // Save comments
+        if (sharedData.data.comments) {
+          const commentsKey = `ChatWorkspace_${chatId}_comments`;
+          localStorage.setItem(commentsKey, JSON.stringify(sharedData.data.comments));
+        }
+        
+        // Save indents
+        if (sharedData.data.indents) {
+          const indentsKey = `ChatWorkspace_${chatId}_indents`;
+          localStorage.setItem(indentsKey, JSON.stringify(sharedData.data.indents));
+        }
+        
+        // Save notes
+        if (sharedData.data.notes) {
+          const notesKey = `ChatWorkspace_${chatId}_notes`;
+          localStorage.setItem(notesKey, JSON.stringify(sharedData.data.notes));
+        }
+        
+        console.log('Shared data saved to localStorage');
+      }
+      
+      // Change URL to ?open={chatId}
+      const newUrl = `${window.location.pathname}?open=${chatId}`;
+      window.history.pushState({}, '', newUrl);
+      
+      // Automatically load the chat if we have the HTML
+      if (sharedData.data && sharedData.data.chatHtml) {
+        // Use a small delay to ensure DOM is ready
+        setTimeout(() => {
+          loadChat();
+        }, 100);
+      } else {
+        // Show success message if no HTML was included
+        alert('✅ Shared chat loaded! The customizations have been saved to your browser.');
+      }
+      
+    } catch (error) {
+      console.error('Error loading shared chat:', error);
+      alert(`❌ Failed to load shared chat: ${error.message}`);
+    }
+    return; // Exit after handling shared link
+  }
+  
+  // Check for ?open={chatId} (only if not handling ?shared)
+  if (urlParams.has('open')) {
+    const chatId = urlParams.get('open');
+    console.log('Opening chat from localStorage:', chatId);
+    
+    // Try to load chat HTML from localStorage
+    const chatHtmlKey = `ChatWorkspace_${chatId}_html`;
+    const savedHtml = localStorage.getItem(chatHtmlKey);
+    
+    if (savedHtml) {
+      // We have the chat HTML in localStorage - load it automatically
+      console.log('Found saved chat HTML in localStorage');
+      const htmlInput = document.getElementById('htmlInput');
+      if (htmlInput) {
+        htmlInput.value = savedHtml;
+      }
+      
+      // Automatically load the chat
+      setTimeout(() => {
+        loadChat();
+      }, 100);
+    } else {
+      // No localStorage data - try to load from shared
+      console.log('No localStorage data found, trying shared link...');
+      
+      try {
+        // Change URL to ?shared={chatId} and let the shared handler take over
+        const sharedUrl = `${window.location.pathname}?shared=${chatId}`;
+        window.location.href = sharedUrl;
+      } catch (error) {
+        console.error('Failed to redirect to shared link:', error);
+        alert('❌ Missing: Chat not found in localStorage or shared files.');
+      }
+    }
+  }
+}
+
+// Run on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', handleUrlParameters);
+} else {
+  handleUrlParameters();
+}
 

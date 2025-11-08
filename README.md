@@ -102,7 +102,7 @@ async function hashChat(arr) {
 This hash is used as the key for localStorage, e.g.:
 
 ```js
-localStorage.setItem(`settings_${chatId}`, JSON.stringify(userSettings));
+localStorage.setItem(`ChatWorkspace_${chatId}`, JSON.stringify(userSettings));
 ```
 
 ---
@@ -165,10 +165,9 @@ Once the HTML is loaded:
 
 Each chat's customizations are saved in `localStorage` using the chat's unique hash as a key:
 
-- **`settings_{chatId}`**: General settings (font size, panel height)
-- **`outline_{chatId}`**: Custom outline summary text for each turn
-- **`comments_{chatId}`**: Comments added to turns
-- **`commentViewEmphasized`**: Global preference for comment view mode
+- **`ChatWorkspace_{chatId}`**: General settings (font size, panel height, comment view preference)
+- **`ChatWorkspace_{chatId}_outline`**: Custom outline summary text for each turn
+- **`ChatWorkspace_{chatId}_comments`**: Comments added to turns
 
 All data persists between sessions and is specific to each conversation.
 

@@ -47,10 +47,9 @@
 }
 
 // LocalStorage Keys (per chat)
-settings_{chatId}    // { fontSize, chatPanelHeight }
-outline_{chatId}     // { [turnIndex]: customSummaryText }
-comments_{chatId}    // { [turnIndex]: commentText }
-commentViewEmphasized // (global) true | false
+ChatWorkspace_{chatId}           // { fontSize, chatPanelHeight, commentViewEmphasized }
+ChatWorkspace_{chatId}_outline   // { [turnIndex]: customSummaryText }
+ChatWorkspace_{chatId}_comments  // { [turnIndex]: commentText }
 ```
 
 ---
@@ -129,7 +128,7 @@ document.querySelector("[data-turn-id]").parentElement.innerHTML
 **Example Usage (in d-render-chat.js, middle section):**
 ```javascript
 currentChatId = await hashChat(turns);
-localStorage.setItem(`settings_${currentChatId}`, JSON.stringify(userSettings));
+localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettings));
 ```
 
 ---
@@ -189,12 +188,12 @@ localStorage.setItem(`settings_${currentChatId}`, JSON.stringify(userSettings));
 **Editable Summaries:**
 - `contentEditable="true"` on `.outline-summary`
 - Saves on blur or Enter key
-- Stores in `outline_{chatId}` localStorage key
+- Stores in `ChatWorkspace_{chatId}_outline` localStorage key
 
 #### **Section D: Comments System (middle-late)**
 
 **`loadCommentsData()` / `saveComment(turnIndex, comment)`**
-- Persists to `comments_{chatId}`
+- Persists to `ChatWorkspace_{chatId}_comments`
 - Empty comments are deleted from storage
 - Triggers `renderOutline()` to update UI
 
@@ -205,7 +204,7 @@ localStorage.setItem(`settings_${currentChatId}`, JSON.stringify(userSettings));
 - Closes on Escape or backdrop click
 
 **`getCommentViewPreference()` / `toggleCommentView()`**
-- Global preference in `commentViewEmphasized`
+- Per-chat preference stored in `ChatWorkspace_{chatId}` settings
 - Toggles between emphasized/de-emphasized views
 - Re-renders outline on toggle
 
@@ -235,22 +234,22 @@ localStorage.setItem(`settings_${currentChatId}`, JSON.stringify(userSettings));
 
 **Resize Handle:**
 - Drag to resize chat panel height
-- Saves preference to `settings_{chatId}`
+- Saves preference to `ChatWorkspace_{chatId}`
 
 #### **Section G: Persistence (late)**
 
 **`loadChatSettings(chatId)` / `saveChatSettings(settings)`**
-- Stores `{ fontSize, chatPanelHeight }`
+- Stores `{ fontSize, chatPanelHeight, commentViewEmphasized }` in `ChatWorkspace_{chatId}`
 - Loads on chat open
-- Saves on zoom/resize
+- Saves on zoom/resize/comment view toggle
 
 **`loadOutlineData()` / `saveOutlineItem(turnIndex, text)`**
 - Per-turn custom summaries
 - Keyed by turn index
 
 **`resetAllOutlineItems()`**
-- Clears `outline_{chatId}`
-- Clears `comments_{chatId}`
+- Clears `ChatWorkspace_{chatId}_outline`
+- Clears `ChatWorkspace_{chatId}_comments`
 - Re-renders with defaults
 
 ---
@@ -290,7 +289,7 @@ localStorage.setItem(`settings_${currentChatId}`, JSON.stringify(userSettings));
 
 **File:** `d-render-chat.js` (renderOutline function, middle)  
 **How:** `contentEditable` + blur/Enter event listeners  
-**Storage:** `outline_{chatId}` with turn index as key
+**Storage:** `ChatWorkspace_{chatId}_outline` with turn index as key
 
 ### Feature: Comments (Two View Modes)
 
@@ -323,7 +322,7 @@ localStorage.setItem(`settings_${currentChatId}`, JSON.stringify(userSettings));
 **How:**
 - Font size: 60-200% via CSS `font-size` property
 - Panel height: Drag handle adjusts flexbox `flex: 0 0 {height}px`
-- Both persist to `settings_{chatId}`
+- Both persist to `ChatWorkspace_{chatId}`
 
 ---
 
@@ -340,10 +339,9 @@ let isResizing = false;          // Resize drag state
 
 **LocalStorage Schema:**
 ```
-settings_{chatId}    → { fontSize: number, chatPanelHeight: number }
-outline_{chatId}     → { [index: number]: string }
-comments_{chatId}    → { [index: number]: string }
-commentViewEmphasized → "true" | "false"
+ChatWorkspace_{chatId}           → { fontSize: number, chatPanelHeight: number, commentViewEmphasized: boolean }
+ChatWorkspace_{chatId}_outline   → { [index: number]: string }
+ChatWorkspace_{chatId}_comments  → { [index: number]: string }
 ```
 
 ---
@@ -371,8 +369,9 @@ python3 -m http.server 8000
 ### Common Development Tasks
 
 **Add new localStorage key:**
-- Use pattern: `keyName_{currentChatId}`
-- Load in `loadChatSettings()`
+- Use pattern: `ChatWorkspace_{currentChatId}_keyName` for separate data stores
+- Or add property to main `ChatWorkspace_{currentChatId}` settings object
+- Load in appropriate load function (e.g., `loadChatSettings()`)
 - Save when data changes
 
 **Add new panel:**
@@ -396,6 +395,7 @@ python3 -m http.server 8000
 **LocalStorage Limits:**
 - ~5-10MB per domain (browser-dependent)
 - Each chat stores: settings (~100 bytes), outline (~2KB), comments (~5KB)
+- All keys prefixed with `ChatWorkspace_{chatId}` for easy identification
 - Estimated capacity: ~500-1000 chats before hitting limits
 
 **Optimization Opportunities:**
@@ -465,7 +465,7 @@ See `README.md` for user-facing roadmap. Developer considerations:
 
 ```javascript
 // Load from localStorage
-const key = `dataType_${currentChatId}`;
+const key = `ChatWorkspace_${currentChatId}_dataType`;
 const data = JSON.parse(localStorage.getItem(key) || '{}');
 
 // Save to localStorage

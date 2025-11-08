@@ -328,15 +328,43 @@ let currentPreviewIndex = null;
  * Get comment view preference (true = emphasized/above, false = de-emphasized/below)
  */
 function getCommentViewPreference() {
-  const saved = localStorage.getItem('commentViewEmphasized');
-  return saved === 'true'; // Default to false (de-emphasized)
+  if (!currentChatId) return false;
+  
+  const settingsKey = `ChatWorkspace_${currentChatId}`;
+  const saved = localStorage.getItem(settingsKey);
+  
+  if (saved) {
+    try {
+      const settings = JSON.parse(saved);
+      return settings.commentViewEmphasized === true;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  return false; // Default to false (de-emphasized)
 }
 
 /**
  * Set comment view preference
  */
 function setCommentViewPreference(emphasized) {
-  localStorage.setItem('commentViewEmphasized', emphasized ? 'true' : 'false');
+  if (!currentChatId) return;
+  
+  const settingsKey = `ChatWorkspace_${currentChatId}`;
+  const saved = localStorage.getItem(settingsKey);
+  let settings = {};
+  
+  if (saved) {
+    try {
+      settings = JSON.parse(saved);
+    } catch (e) {
+      settings = {};
+    }
+  }
+  
+  settings.commentViewEmphasized = emphasized;
+  localStorage.setItem(settingsKey, JSON.stringify(settings));
 }
 
 /**
@@ -358,7 +386,7 @@ function toggleCommentView() {
 function loadCommentsData() {
   if (!currentChatId) return {};
   
-  const commentsKey = `comments_${currentChatId}`;
+  const commentsKey = `ChatWorkspace_${currentChatId}_comments`;
   const saved = localStorage.getItem(commentsKey);
   
   if (saved) {
@@ -379,7 +407,7 @@ function loadCommentsData() {
 function saveComment(turnIndex, comment) {
   if (!currentChatId) return;
   
-  const commentsKey = `comments_${currentChatId}`;
+  const commentsKey = `ChatWorkspace_${currentChatId}_comments`;
   const commentsData = loadCommentsData();
   
   if (comment !== null && comment !== undefined && comment !== '') {
@@ -614,7 +642,7 @@ function scrollToTurn(index) {
  * Load saved settings for this chat from localStorage
  */
 function loadChatSettings(chatId) {
-  const settingsKey = `settings_${chatId}`;
+  const settingsKey = `ChatWorkspace_${chatId}`;
   const saved = localStorage.getItem(settingsKey);
   
   if (saved) {
@@ -638,7 +666,7 @@ function loadChatSettings(chatId) {
 function saveChatSettings(settings) {
   if (!currentChatId) return;
   
-  const settingsKey = `settings_${currentChatId}`;
+  const settingsKey = `ChatWorkspace_${currentChatId}`;
   localStorage.setItem(settingsKey, JSON.stringify(settings));
   console.log('Saved settings for chat:', currentChatId);
 }
@@ -649,7 +677,7 @@ function saveChatSettings(settings) {
 function loadOutlineData() {
   if (!currentChatId) return {};
   
-  const outlineKey = `outline_${currentChatId}`;
+  const outlineKey = `ChatWorkspace_${currentChatId}_outline`;
   const saved = localStorage.getItem(outlineKey);
   
   if (saved) {
@@ -670,7 +698,7 @@ function loadOutlineData() {
 function saveOutlineItem(turnIndex, text) {
   if (!currentChatId) return;
   
-  const outlineKey = `outline_${currentChatId}`;
+  const outlineKey = `ChatWorkspace_${currentChatId}_outline`;
   const outlineData = loadOutlineData();
   
   // Save the custom text for this turn
@@ -687,12 +715,12 @@ function resetAllOutlineItems() {
   if (!currentChatId || turns.length === 0) return;
   
   // Clear all outline customizations from localStorage
-  const outlineKey = `outline_${currentChatId}`;
+  const outlineKey = `ChatWorkspace_${currentChatId}_outline`;
   localStorage.removeItem(outlineKey);
   console.log('Reset all outline items to defaults');
   
   // Clear all comments from localStorage
-  const commentsKey = `comments_${currentChatId}`;
+  const commentsKey = `ChatWorkspace_${currentChatId}_comments`;
   localStorage.removeItem(commentsKey);
   console.log('Removed all comments');
   
@@ -748,7 +776,7 @@ const originalLoadChatSettings = loadChatSettings;
 loadChatSettings = function(chatId) {
   originalLoadChatSettings(chatId);
   
-  const settingsKey = `settings_${chatId}`;
+  const settingsKey = `ChatWorkspace_${chatId}`;
   const saved = localStorage.getItem(settingsKey);
   
   if (saved) {

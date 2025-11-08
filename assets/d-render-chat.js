@@ -91,6 +91,10 @@ async function loadChat() {
     // Enable share button
     const shareBtn = document.getElementById('shareBtn');
     if (shareBtn) shareBtn.disabled = false;
+    
+    // Load and save notes
+    loadChatNotes(currentChatId);
+    saveChatNotes();
 
   } catch (error) {
     console.error('Error loading chat:', error);
@@ -732,6 +736,45 @@ function scrollToTurn(index) {
 }
 
 /**
+ * Load notes for the current chat
+ */
+function loadChatNotes(chatId) {
+  if (!chatId) return;
+  
+  const notesKey = `ChatWorkspace_${chatId}_notes`;
+  const saved = localStorage.getItem(notesKey);
+  const notesInput = document.getElementById('notesInput');
+  
+  if (saved && notesInput) {
+    try {
+      const notesData = JSON.parse(saved);
+      notesInput.value = notesData.notes || '';
+    } catch (e) {
+      console.warn('Failed to parse saved notes:', e);
+    }
+  }
+}
+
+/**
+ * Save notes for the current chat
+ */
+function saveChatNotes() {
+  if (!currentChatId) return;
+  
+  const notesInput = document.getElementById('notesInput');
+  if (!notesInput) return;
+  
+  const notesKey = `ChatWorkspace_${currentChatId}_notes`;
+  const notesData = {
+    notes: notesInput.value,
+    lastUpdated: new Date().toISOString()
+  };
+  
+  localStorage.setItem(notesKey, JSON.stringify(notesData));
+  console.log('Saved notes for chat:', currentChatId);
+}
+
+/**
  * Load saved settings for this chat from localStorage
  */
 function loadChatSettings(chatId) {
@@ -921,6 +964,18 @@ document.getElementById('htmlInput').addEventListener('keydown', (e) => {
     loadChat();
   }
 });
+
+// Auto-save notes when typing (with debounce)
+let notesDebounceTimer;
+const notesInput = document.getElementById('notesInput');
+if (notesInput) {
+  notesInput.addEventListener('input', () => {
+    clearTimeout(notesDebounceTimer);
+    notesDebounceTimer = setTimeout(() => {
+      saveChatNotes();
+    }, 500); // Save after 500ms of no typing
+  });
+}
 
 /**
  * Zoom functionality for chat content

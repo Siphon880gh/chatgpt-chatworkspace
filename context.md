@@ -11,6 +11,8 @@
 - Add personal notes/comments to specific turns and overall chat context
 - Customize outline summaries for easier reference
 - Search/navigate long conversations efficiently
+- Collapse/expand chat bubbles for better focus and space management
+- Auto-highlight outline items based on scroll position
 
 ---
 
@@ -167,18 +169,40 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 **`renderChat(turns)`**
 - Creates `.chat-turn` divs for each message
 - Adds role labels (👤 User / 🤖 Assistant)
+- Adds collapse toggle button (⋮⋮) for each chat bubble
+- Sets z-index incrementally for proper layering of sticky buttons
 - Attempts to extract ChatGPT's native formatted HTML via `extractFormattedContent()`
 - Falls back to `formatContentWithCode()` for plain text/markdown parsing
+- Sets up scroll tracking via `setupScrollTracking()` to highlight outline items
+
+**`toggleChatTurnCollapse(turnIndex)`**
+- Toggles collapse state of a specific chat turn
+- Hides/shows turn content while keeping label visible
+- Updates button title between "Collapse" and "Expand"
+- Persists state via CSS class (not localStorage)
+
+**`setupScrollTracking()`**
+- Creates IntersectionObserver to track visible chat turns
+- Uses multiple thresholds (0 to 1.0 in 0.1 increments) for accurate detection
+- Focuses on center of viewport with rootMargin configuration
+- Calls `updateOutlineHighlight()` when visibility changes
+
+**`updateOutlineHighlight(turnIndex)`**
+- Removes `scroll-highlighted` class from all outline items
+- Adds highlight to outline item corresponding to most visible chat turn
+- Respects preview highlighting (doesn't override `previewing` class)
+- Provides visual feedback of current reading position
 
 **`extractFormattedContent(rawHtml)`**
 - Primary rendering method for ChatGPT HTML exports
 - Looks for `.markdown` container (assistant messages with rich formatting)
 - Looks for `.whitespace-pre-wrap` divs (user messages)
 - Preserves ChatGPT's native HTML structure (p, ul, ol, li, strong, em, h1-h6, etc.)
-- Processes code blocks to convert literal `\n` text into actual newlines:
-  - Uses TreeWalker to traverse all text nodes within `<code>` elements
-  - Replaces escaped newlines (`\\n`) with actual newline characters
-  - Ensures code blocks render with proper line breaks
+- Processes all text nodes to handle literal `\n` characters robustly:
+  - Uses TreeWalker to traverse all text nodes in the cloned content
+  - For text nodes inside `<code>` elements: Replaces `\\n` with actual newline characters
+  - For text nodes outside code blocks: Removes `\\n` completely
+  - Ensures code blocks render with proper line breaks while cleaning up other content
 - Returns null if no ChatGPT structure found (triggers fallback)
 
 **`formatContentWithCode(text, rawHtml)` - Fallback**
@@ -241,7 +265,13 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Creates modal overlay
 - Shows two separate textareas:
   - **Heading Comment:** Displayed above role label
-  - **Turn Comment:** Displayed below summary text
+  - **Turn Comment:** Displayed below summary text with HTML toolbar
+- Toolbar buttons for inserting HTML snippets:
+  - **▼ Collapsible:** Inserts `<details>/<summary>` structure
+  - **⫿ Two Columns:** Inserts `.columns-2` grid layout
+  - **≡ Three Columns:** Inserts `.columns-3` grid layout
+- Comments support HTML rendering (innerHTML) for rich formatting
+- `insertAtCursor()` helper inserts HTML snippets at cursor position
 - Save/Delete All buttons
 - Closes on Escape or backdrop click
 - Handles legacy string format for backward compatibility
@@ -289,7 +319,8 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Clears `ChatWorkspace_{chatId}_outline`
 - Clears `ChatWorkspace_{chatId}_comments`
 - Clears `ChatWorkspace_{chatId}_indents`
-- Re-renders with defaults
+- Re-renders outline with defaults
+- Re-renders chat to reset any collapsed states
 
 #### **Section I: Notes System (late)**
 
@@ -417,13 +448,15 @@ Content-Type: application/json
 2. **Input Section (early)** - Textarea, load button
 3. **Panel System (early-middle)** - `.panel`, `.panel-header`, `.panel-content`
 4. **Chat Turns (middle)** - Color-coded user/assistant, code blocks, markdown formatting
-5. **Markdown Styles (middle)** - Headers (h1-h6), lists (ul/ol/li), blockquotes, paragraphs, bold/italic
-6. **ChatGPT Data Attributes (middle)** - Spacing for `[data-start]`, `[data-is-last-node]` attributes
-7. **Outline Items (middle)** - Hover effects, editable summaries, icons
-8. **Comment System (middle-late)** - Display styles, editor modal
-9. **Preview Panel (late)** - Fixed bottom, slide-up animation
-10. **Controls (late)** - Zoom buttons, resize handle, reset button
-11. **Responsive (end)** - Mobile breakpoints
+5. **Collapsible Chat Bubbles (middle)** - Toggle button (sticky position), collapsed state, rotation animations
+6. **Markdown Styles (middle)** - Headers (h1-h6), lists (ul/ol/li), blockquotes, paragraphs, bold/italic
+7. **ChatGPT Data Attributes (middle)** - Spacing for `[data-start]`, `[data-is-last-node]` attributes
+8. **Outline Items (middle)** - Hover effects, editable summaries, icons, scroll-highlighting
+9. **Comment System (middle-late)** - Display styles, editor modal, HTML element support (columns, collapsible)
+10. **Comment Toolbar (middle-late)** - Toolbar buttons for inserting HTML snippets
+11. **Preview Panel (late)** - Fixed bottom, slide-up animation
+12. **Controls (late)** - Zoom buttons, resize handle, reset button
+13. **Responsive (end)** - Mobile breakpoints, stacked columns
 
 **Design System:**
 - Primary gradient: `#667eea → #764ba2`
@@ -468,15 +501,52 @@ Content-Type: application/json
 
 **Storage:** `ChatWorkspace_{chatId}_indents` with turn index as key, value is indent level (0+)
 
-### Feature: Comments (Two Types)
+### Feature: Comments (Two Types with HTML Support)
 
-**File:** `d-render-chat.js` (comment functions, middle-late)  
+**Files:** `d-render-chat.js` (comment functions, middle-late), `styles.css` (comment display and toolbar styles)
 **How:**
 - Modal editor with two separate input fields
 - **Heading Comment:** Always displayed above role label, highlighted
-- **Turn Comment:** Always displayed below summary text, italic
+- **Turn Comment:** Always displayed below summary text with HTML toolbar
+- Toolbar provides quick insertion of HTML elements:
+  - **Collapsible sections:** `<details>/<summary>` for expandable content
+  - **Two-column layout:** `.columns-2` CSS grid
+  - **Three-column layout:** `.columns-3` CSS grid
+- Comments render as HTML (innerHTML) instead of plain text
+- `insertAtCursor()` function inserts HTML snippets at cursor position
 - Both types can be used simultaneously or independently
 - Legacy support for old string-based comments (treated as turn comments)
+- Responsive: columns stack on mobile devices
+
+### Feature: Collapsible Chat Bubbles
+
+**Files:** `d-render-chat.js` (toggleChatTurnCollapse, renderChat), `styles.css` (collapse-toggle styles)
+**How:**
+- Toggle button (⋮⋮) appears on each chat bubble
+- Button uses sticky positioning and floats left of content
+- Rotates 90° when bubble is expanded, 0° when collapsed
+- Clicking toggles the `.collapsed` class on the turn element
+- Collapsed state hides content but keeps label visible
+- Does not persist to localStorage (resets on page reload or chat reload)
+- Reset button now also resets collapsed states
+- Z-index increments per turn for proper button layering
+
+**Storage:** CSS class-based (ephemeral, not persisted)
+
+### Feature: Scroll-Based Outline Highlighting
+
+**Files:** `d-render-chat.js` (setupScrollTracking, updateOutlineHighlight), `styles.css` (scroll-highlighted)
+**How:**
+- IntersectionObserver tracks which chat turns are visible
+- Uses multiple thresholds (0-1.0 in 0.1 increments) for accurate detection
+- Centers focus on viewport with rootMargin: '-10% 0px -10% 0px'
+- Tracks intersection ratio to find most visible turn
+- Highlights corresponding outline item with `.scroll-highlighted` class
+- Different styling from preview highlighting (doesn't override `.previewing`)
+- Provides real-time visual feedback of reading position
+- Observer is recreated when chat is re-rendered
+
+**Storage:** None (real-time UI state)
 
 ### Feature: Message Preview
 
@@ -601,6 +671,7 @@ User B clears localStorage → ?open={id} → redirects to ?shared={id} → fetc
 ```javascript
 let currentChatId = null;        // Active chat hash
 let turns = [];                  // Parsed message array
+let scrollObserver = null;       // IntersectionObserver for scroll tracking
 let currentPreviewIndex = null;  // Currently previewed turn
 let currentFontSize = 100;       // Zoom level percentage
 let isResizing = false;          // Resize drag state
@@ -741,7 +812,8 @@ See `README.md` for user-facing roadmap. Developer considerations:
 - `Clipboard API` - Copy code blocks and share links
 - `Fetch API` - Share/open server communication
 - `History API` - URL parameter management (pushState)
-- `IntersectionObserver` - (not currently used, but could optimize rendering)
+- `IntersectionObserver` - Scroll tracking to highlight outline items based on visible chat turns
+- `TreeWalker` - Traverse text nodes for newline character processing
 
 **Server Requirements (for share feature):**
 - PHP 7.0+ with write permissions to `shared/` directory
@@ -762,8 +834,10 @@ See `README.md` for user-facing roadmap. Developer considerations:
 
 - Chat parsing logic → `d-render-chat.js` (`collectTurns`, near top)
 - Chat rendering logic → `d-render-chat.js` (`renderChat`, `extractFormattedContent`, early)
+- Collapsible chat bubbles → `d-render-chat.js` (`toggleChatTurnCollapse`, middle)
+- Scroll tracking → `d-render-chat.js` (`setupScrollTracking`, `updateOutlineHighlight`, early-middle)
 - Hashing implementation → `c-hash-chat.js` (`hashChat`, throughout)
-- Comment system → `d-render-chat.js` (comment functions, middle-late)
+- Comment system → `d-render-chat.js` (comment functions, `showCommentEditor`, `insertAtCursor`, middle-late)
 - Preview panel → `d-render-chat.js` (`showMessagePreview`, late-middle)
 - Notes system → `d-render-chat.js` (`loadChatNotes`, `saveChatNotes`, late) + `index.php` (lines 26-33)
 - Share/Open system → `d-render-chat.js` (`handleShareClick`, `showShareModal`, `handleUrlParameters`, lines 888-1359) + `share.php`
@@ -799,11 +873,15 @@ item.addEventListener('click', (e) => {
 ---
 
 **Last Updated:** 2025-11-08  
-**File Version:** 1.3  
+**File Version:** 1.4  
 **Project Status:** Active Development  
 **Recent Updates:** 
-- Added ChatGPT-fidelity rendering - extracts and preserves native HTML structure from ChatGPT exports for accurate formatting (headers, lists, bold/italic, blockquotes, code blocks, etc.)
+- **Collapsible Chat Bubbles:** Added toggle button (⋮⋮) to collapse/expand individual chat turns for better focus and space management
+- **Scroll-Based Outline Highlighting:** IntersectionObserver tracks visible chat turns and highlights corresponding outline items in real-time
+- **HTML Support in Comments:** Turn comments now support HTML rendering with toolbar for inserting collapsible sections, two-column and three-column layouts
+- **Improved Newline Handling:** Enhanced `\n` processing to handle all text nodes - converts to newlines in code blocks and removes from other content
+- **Better Collapse UX:** Changed toggle button from absolute to sticky positioning with float for better interaction
+- ChatGPT-fidelity rendering - extracts and preserves native HTML structure from ChatGPT exports for accurate formatting (headers, lists, bold/italic, blockquotes, code blocks, etc.)
 - Enhanced code block rendering with proper line break handling - converts literal `\n` text to actual newlines using TreeWalker
 - Added syntax highlighting support for ChatGPT's native code blocks with `hljs-*` classes
-- Code blocks now render with proper formatting and preserved line breaks
 

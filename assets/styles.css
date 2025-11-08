@@ -278,9 +278,11 @@ button:disabled {
 
 .chat-turn {
   margin-bottom: 1.5rem;
-  padding: 1rem;
+  padding: 1rem 1rem 1rem 2.5rem;
   border-radius: 8px;
   scroll-margin-top: 1rem;
+  position: relative;
+  transition: all 0.2s ease;
 }
 
 .chat-turn.user {
@@ -291,6 +293,77 @@ button:disabled {
 .chat-turn.assistant {
   background: #f3e5f5;
   border-left: 4px solid #9c27b0;
+}
+
+.chat-turn.collapsed {
+  padding: 0.75rem 1rem 1.1rem 2.5rem;
+}
+
+.chat-turn.collapsed .turn-content {
+  display: none;
+}
+
+.chat-turn.collapsed .turn-label {
+  margin-bottom: 0;
+}
+
+.collapse-toggle {
+  position: absolute;
+  left: 0.25rem;
+  top: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: rgba(0, 0, 0, 0.3);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  letter-spacing: -0.1em;
+  transform: rotate(90deg);
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+.chat-turn {
+  /* Increment z-index for each turn so sticky buttons layer correctly */
+  z-index: 1;
+}
+
+.chat-turn:hover .collapse-toggle {
+  color: rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.collapse-toggle:hover {
+  color: #667eea !important;
+  background: rgba(102, 126, 234, 0.15) !important;
+  transform: rotate(90deg) scale(1.15);
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3) !important;
+}
+
+.chat-turn.collapsed .collapse-toggle {
+  transform: rotate(0deg);
+}
+
+.chat-turn.collapsed:hover .collapse-toggle {
+  color: rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.chat-turn.collapsed .collapse-toggle:hover {
+  color: #667eea !important;
+  background: rgba(102, 126, 234, 0.15) !important;
+  transform: rotate(0deg) scale(1.15);
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3) !important;
 }
 
 .turn-label {
@@ -308,6 +381,47 @@ button:disabled {
 
 .turn-content code {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* ChatGPT native code blocks */
+.turn-content code.whitespace-pre,
+.turn-content code[class*="whitespace-pre"] {
+  display: block;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.5;
+  margin: 0.75rem 0;
+}
+
+/* Syntax highlighting for ChatGPT code blocks */
+.turn-content code .hljs-section {
+  color: #9cdcfe;
+  font-weight: bold;
+}
+
+.turn-content code .hljs-bullet {
+  color: #ce9178;
+}
+
+.turn-content code .hljs-strong {
+  color: #4ec9b0;
+  font-weight: bold;
+}
+
+.turn-content code .hljs-string {
+  color: #ce9178;
+}
+
+.turn-content code .hljs-link {
+  color: #3b8eea;
+}
+
+.turn-content code .hljs-emphasis {
+  font-style: italic;
 }
 
 .turn-content .inline-code {
@@ -491,10 +605,11 @@ button:disabled {
 
 .turn-content .code-block code {
   display: block;
-  white-space: pre;
+  white-space: pre-wrap;
   color: inherit;
   font-size: 0.9em;
   line-height: 1.5;
+  word-break: break-word;
 }
 
 .turn-content pre {

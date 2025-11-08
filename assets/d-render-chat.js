@@ -121,6 +121,19 @@ function renderChat(turns) {
     const turnDiv = document.createElement('div');
     turnDiv.className = `chat-turn ${turn.type}`;
     turnDiv.id = `turn-${index}`;
+    // Set z-index so later bubbles appear above earlier ones (for sticky buttons)
+    turnDiv.style.zIndex = index + 1;
+
+    // Collapse toggle button
+    const collapseBtn = document.createElement('button');
+    collapseBtn.className = 'collapse-toggle';
+    collapseBtn.innerHTML = '⋮⋮';
+    collapseBtn.title = 'Collapse';
+    collapseBtn.setAttribute('data-turn-index', index);
+    collapseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleChatTurnCollapse(index);
+    });
 
     const label = document.createElement('div');
     label.className = 'turn-label';
@@ -138,6 +151,7 @@ function renderChat(turns) {
       content.innerHTML = formatContentWithCode(turn.content, turn.rawHtml);
     }
 
+    turnDiv.appendChild(collapseBtn);
     turnDiv.appendChild(label);
     turnDiv.appendChild(content);
     chatContent.appendChild(turnDiv);
@@ -157,9 +171,35 @@ function extractFormattedContent(rawHtml) {
     // Look for ChatGPT's markdown container
     let markdownDiv = doc.querySelector('.markdown');
     if (markdownDiv) {
-      let html = markdownDiv.innerHTML;
-      // Remove escaped newlines that appear as literal \n in the HTML
-      html = html.replace(/\\n/g, '');
+      // Clone to avoid modifying original
+      const clone = markdownDiv.cloneNode(true);
+      
+      // Process code blocks to handle literal \n characters
+      const codeBlocks = clone.querySelectorAll('code');
+      codeBlocks.forEach(codeBlock => {
+        // Get all text nodes and replace literal \n with actual newlines
+        const walker = document.createTreeWalker(
+          codeBlock,
+          NodeFilter.SHOW_TEXT,
+          null,
+          false
+        );
+        
+        const textNodes = [];
+        let node;
+        while (node = walker.nextNode()) {
+          textNodes.push(node);
+        }
+        
+        textNodes.forEach(textNode => {
+          if (textNode.textContent.includes('\\n')) {
+            // Replace escaped newlines (\\n) with actual newlines
+            textNode.textContent = textNode.textContent.replace(/\\n/g, '\n');
+          }
+        });
+      });
+      
+      let html = clone.innerHTML;
       return html;
     }
     
@@ -186,6 +226,8 @@ function escapeAndFormat(text) {
   const div = document.createElement('div');
   div.textContent = text;
   let escaped = div.innerHTML;
+  // Convert literal \n strings to actual newlines first
+  escaped = escaped.replace(/\\n/g, '\n');
   // Convert newlines to br
   escaped = escaped.replace(/\n/g, '<br>');
   return escaped;
@@ -649,6 +691,30 @@ function loadCommentsData() {
 }
 
 /**
+ * Toggle collapse state for a chat turn
+ */
+function toggleChatTurnCollapse(turnIndex) {
+  const turnElement = document.getElementById(`turn-${turnIndex}`);
+  if (!turnElement) return;
+  
+  const isCurrentlyCollapsed = turnElement.classList.contains('collapsed');
+  const newCollapsedState = !isCurrentlyCollapsed;
+  
+  // Toggle the class
+  if (newCollapsedState) {
+    turnElement.classList.add('collapsed');
+  } else {
+    turnElement.classList.remove('collapsed');
+  }
+  
+  // Update button title
+  const collapseBtn = turnElement.querySelector('.collapse-toggle');
+  if (collapseBtn) {
+    collapseBtn.title = newCollapsedState ? 'Expand' : 'Collapse';
+  }
+}
+
+/**
  * Save comments for a specific turn (both heading and turn comments)
  */
 function saveComment(turnIndex, headingComment, turnComment) {
@@ -1063,6 +1129,9 @@ function resetAllOutlineItems() {
   
   // Re-render the outline with defaults (using existing turns data)
   renderOutline(turns);
+  
+  // Re-render chat to reset any collapsed states
+  renderChat(turns);
 }
 
 /**

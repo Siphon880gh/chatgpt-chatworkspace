@@ -63,18 +63,18 @@ ChatWorkspace_{chatId}_html      // Original chat HTML (for URL ?open= parameter
 
 ```
 /Users/wengffung/dev/web/xny/chat/
-├── index.php                  (~102 lines) - Main UI structure (HTML input, notes textarea, panels)
+├── index.php                  (~100 lines) - Main UI structure (HTML input, notes textarea, panels)
 ├── share.php                  (~104 lines) - Backend API for sharing conversations
 ├── README.md                  (~196 lines) - User-facing documentation
-├── context.md                 (this file) - Developer documentation
+├── context.md                 (~810 lines) - Developer documentation (this file)
 ├── shared/                    - Directory for shared conversation JSON files
 │   └── {chatId}.json         - Shared conversation data
 └── assets/
     ├── a-load-chat.js         (2 lines) - Console snippet to extract ChatGPT HTML
     ├── b-store-turns.js       (32 lines) - Standalone turn collector (not used in main flow)
     ├── c-hash-chat.js         (~90 lines) - SHA-256 hashing utilities
-    ├── d-render-chat.js       (~1361 lines) - Core application logic
-    └── styles.css             (~1166 lines) - All styling (gradients, panels, modals)
+    ├── d-render-chat.js       (~1577 lines) - Core application logic
+    └── styles.css             (~1331 lines) - All styling (gradients, panels, modals)
 ```
 
 ---
@@ -143,7 +143,7 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 
 ### 4. Main Application Logic (`d-render-chat.js`)
 
-**Location:** Core 812-line file loaded in `index.php`  
+**Location:** Core ~1577-line file loaded in `index.php`  
 **Purpose:** All UI rendering, interactions, persistence
 
 #### **Section A: Parsing & Loading (near top)**
@@ -175,7 +175,10 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Looks for `.markdown` container (assistant messages with rich formatting)
 - Looks for `.whitespace-pre-wrap` divs (user messages)
 - Preserves ChatGPT's native HTML structure (p, ul, ol, li, strong, em, h1-h6, etc.)
-- Strips escaped newlines (`\\n`) between HTML tags
+- Processes code blocks to convert literal `\n` text into actual newlines:
+  - Uses TreeWalker to traverse all text nodes within `<code>` elements
+  - Replaces escaped newlines (`\\n`) with actual newline characters
+  - Ensures code blocks render with proper line breaks
 - Returns null if no ChatGPT structure found (triggers fallback)
 
 **`formatContentWithCode(text, rawHtml)` - Fallback**
@@ -407,7 +410,7 @@ Content-Type: application/json
 
 ### 6. Styling (`styles.css`)
 
-**Location:** 812 lines of comprehensive CSS  
+**Location:** ~1331 lines of comprehensive CSS  
 **Key Sections:**
 
 1. **Global Styles (top)** - Reset, body, header gradient
@@ -433,6 +436,10 @@ Content-Type: application/json
 - Preserves native HTML structure from ChatGPT exports (`.markdown` container)
 - Supports `data-start`, `data-end`, `data-is-last-node` attributes for accurate spacing
 - Renders paragraphs, lists, headers, bold, italic, blockquotes with ChatGPT-like styling
+- Native code block support with syntax highlighting:
+  - Styles `code.whitespace-pre` elements with dark theme
+  - Preserves ChatGPT's `hljs-*` syntax highlighting classes (section, bullet, strong, string, link, emphasis)
+  - Uses `white-space: pre` to maintain exact formatting and line breaks
 
 ---
 
@@ -481,18 +488,25 @@ Content-Type: application/json
 
 ### Feature: ChatGPT-Fidelity Content Rendering
 
-**Files:** `d-render-chat.js` (extractFormattedContent, renderChat), `styles.css` (markdown styles)
+**Files:** `d-render-chat.js` (extractFormattedContent, renderChat), `styles.css` (markdown styles, code block styles)
 **How:**
 - **Primary Method:** Extracts and preserves ChatGPT's native HTML structure from exports
   - Detects `.markdown` container with full formatting (p, ul, ol, li, strong, em, h1-h6, etc.)
-  - Removes escaped newlines (`\\n`) that appear in ChatGPT exports
+  - Processes code blocks to handle literal `\n` characters:
+    - Uses TreeWalker to traverse all text nodes within `<code>` elements
+    - Converts escaped newlines (`\\n`) to actual newline characters
+    - Ensures proper line breaks in code snippets
   - Maintains all data attributes (`data-start`, `data-end`, etc.) for proper spacing
+  - Preserves ChatGPT's syntax highlighting classes (`hljs-section`, `hljs-bullet`, `hljs-strong`, etc.)
 - **Fallback Method:** Markdown parser for plain text
   - Parses markdown syntax (bold, italic, headers, lists, blockquotes)
   - Detects triple-backtick code blocks: ` ```lang\ncode\n``` `
   - Creates proper HTML structure from markdown
-- **Code Blocks:** Header with language tag + copy button, dark theme styling
-- **Result:** Chat bubbles render with full fidelity matching ChatGPT's interface
+- **Code Blocks:** 
+  - Native ChatGPT code blocks: Dark theme with syntax highlighting preserved
+  - Fallback code blocks: Header with language tag + copy button, dark theme styling
+  - Both use `white-space: pre` or `pre-wrap` to maintain exact formatting
+- **Result:** Chat bubbles render with full fidelity matching ChatGPT's interface, including properly formatted code snippets
 
 ### Feature: Zoom & Resize
 
@@ -669,8 +683,8 @@ php -S localhost:8000
 ## 📊 Performance Considerations
 
 **File Sizes:**
-- `d-render-chat.js`: 812 lines (~30KB) - Consider code splitting for future features
-- `styles.css`: 812 lines (~20KB) - All styles inline, no external dependencies
+- `d-render-chat.js`: ~1577 lines (~55KB) - Core application logic with chat rendering, outline, comments, preview, share features
+- `styles.css`: ~1331 lines (~35KB) - All styles inline, no external dependencies
 
 **LocalStorage Limits:**
 - ~5-10MB per domain (browser-dependent)
@@ -785,7 +799,11 @@ item.addEventListener('click', (e) => {
 ---
 
 **Last Updated:** 2025-11-08  
-**File Version:** 1.2  
+**File Version:** 1.3  
 **Project Status:** Active Development  
-**Recent Updates:** Added ChatGPT-fidelity rendering - now extracts and preserves native HTML structure from ChatGPT exports for accurate formatting (headers, lists, bold/italic, blockquotes, code blocks, etc.)
+**Recent Updates:** 
+- Added ChatGPT-fidelity rendering - extracts and preserves native HTML structure from ChatGPT exports for accurate formatting (headers, lists, bold/italic, blockquotes, code blocks, etc.)
+- Enhanced code block rendering with proper line break handling - converts literal `\n` text to actual newlines using TreeWalker
+- Added syntax highlighting support for ChatGPT's native code blocks with `hljs-*` classes
+- Code blocks now render with proper formatting and preserved line breaks
 

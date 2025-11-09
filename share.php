@@ -81,8 +81,11 @@ if (!is_dir($sharedDir)) {
     }
 }
 
-// Save to file
+// Check if file already exists
 $filename = $sharedDir . '/' . $conversationId . '.json';
+$isNew = !file_exists($filename);
+
+// Save to file
 $result = file_put_contents($filename, json_encode($sharedData, JSON_PRETTY_PRINT));
 
 if ($result === false) {
@@ -97,7 +100,8 @@ echo json_encode([
     'success' => true,
     'conversationId' => $conversationId,
     'shareUrl' => '/shared/' . $conversationId . '.json',
-    'timestamp' => $sharedData['timestamp']
+    'timestamp' => $sharedData['timestamp'],
+    'isNew' => $isNew
 ]);
 ?>
 

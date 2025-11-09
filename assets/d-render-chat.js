@@ -1623,6 +1623,12 @@ function showShareModal() {
         // Construct share URL with ?shared= parameter
         const shareUrl = `${window.location.origin}${window.location.pathname}?shared=${result.conversationId}`;
         
+        // Determine the title based on whether it's a new share or an update
+        const successTitle = result.isNew ? 'Share Link Created!' : 'Share Content Updated!';
+        const successText = result.isNew 
+          ? 'Your chat is ready to share with all customizations'
+          : 'Your shared chat has been updated with the latest customizations';
+        
         // Hide the generate button and description
         shareButton.style.display = 'none';
         description.style.display = 'none';
@@ -1631,8 +1637,8 @@ function showShareModal() {
         statusDiv.style.display = 'block';
         statusDiv.innerHTML = `
           <div class="share-success-icon">✓</div>
-          <h3 class="share-success-title">Share Link Created!</h3>
-          <p class="share-success-text">Your chat is ready to share with all customizations</p>
+          <h3 class="share-success-title">${successTitle}</h3>
+          <p class="share-success-text">${successText}</p>
           <div class="share-link-container">
             <input type="text" class="share-link-input" value="${shareUrl}" readonly>
             <button class="share-copy-btn" onclick="event.stopPropagation();">

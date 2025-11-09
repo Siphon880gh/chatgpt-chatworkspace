@@ -136,6 +136,17 @@ function renderChat(turns) {
       toggleChatTurnCollapse(index);
     });
 
+    // Copy button
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-turn-btn';
+    copyBtn.innerHTML = '📋';
+    copyBtn.title = 'Copy text';
+    copyBtn.setAttribute('data-turn-index', index);
+    copyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyChatTurnText(index, turn);
+    });
+
     const label = document.createElement('div');
     label.className = 'turn-label';
     label.textContent = turn.type === 'user' ? '👤 User' : '🤖 Assistant';
@@ -153,6 +164,7 @@ function renderChat(turns) {
     }
 
     turnDiv.appendChild(collapseBtn);
+    turnDiv.appendChild(copyBtn);
     turnDiv.appendChild(label);
     turnDiv.appendChild(content);
     chatContent.appendChild(turnDiv);
@@ -774,6 +786,32 @@ function loadCommentsData() {
   }
   
   return {};
+}
+
+/**
+ * Copy chat turn text to clipboard
+ */
+function copyChatTurnText(turnIndex, turn) {
+  if (!turn) return;
+  
+  const text = turn.content;
+  navigator.clipboard.writeText(text).then(() => {
+    // Find the button and show feedback
+    const turnElement = document.getElementById(`turn-${turnIndex}`);
+    const btn = turnElement?.querySelector('.copy-turn-btn');
+    if (btn) {
+      const originalContent = btn.innerHTML;
+      btn.innerHTML = '✅';
+      btn.style.background = '#10b981';
+      
+      setTimeout(() => {
+        btn.innerHTML = originalContent;
+        btn.style.background = '';
+      }, 2000);
+    }
+  }).catch(err => {
+    console.error('Failed to copy:', err);
+  });
 }
 
 /**

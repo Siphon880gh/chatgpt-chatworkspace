@@ -285,6 +285,11 @@ button:disabled {
   transition: all 0.2s ease;
 }
 
+
+.chat-turn:not(.collapsed) {
+  min-height: 90px;
+}
+
 .chat-turn.user {
   background: #e3f2fd;
   border-left: 4px solid #2196f3;
@@ -367,6 +372,49 @@ button:disabled {
   background: rgba(102, 126, 234, 0.15) !important;
   transform: rotate(0deg) scale(1.15);
   box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3) !important;
+}
+
+/* Copy button for chat turns */
+.copy-turn-btn {
+  position: sticky;
+  left: 0.25rem;
+  top: 3.5rem;
+  background: transparent;
+  border: none;
+  color: rgba(0, 0, 0, 0.3);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  float: left;
+  margin-left: -2.25rem;
+  margin-right: 0.75rem;
+  z-index: 9;
+  backdrop-filter: blur(4px);
+}
+
+.chat-turn:hover .copy-turn-btn {
+  color: rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.copy-turn-btn:hover {
+  color: #667eea !important;
+  background: rgba(102, 126, 234, 0.15) !important;
+  transform: scale(1.15);
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3) !important;
+}
+
+/* Hide copy button when chat turn is collapsed */
+.chat-turn.collapsed .copy-turn-btn {
+  display: none;
 }
 
 .turn-label {
@@ -581,7 +629,7 @@ button:disabled {
 }
 
 .turn-content .copy-code-btn {
-  background: rgba(255, 255, 255, 0.1);
+  /* background: rgba(255, 255, 255, 0.1); */
   color: #d4d4d4;
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 0.25rem 0.75rem;
@@ -593,8 +641,8 @@ button:disabled {
 }
 
 .turn-content .copy-code-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: none;
+  /* background: rgba(255, 255, 255, 0.2); */
+  /* transform: none; */
   box-shadow: none;
 }
 
@@ -873,7 +921,7 @@ button:disabled {
 .reset-btn:hover {
   background: #667eea;
   color: white;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 

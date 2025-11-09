@@ -243,7 +243,31 @@ button:disabled {
   font-weight: 600;
   font-size: 0.9rem;
   color: #555;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   border-bottom: 1px solid #e0e0e0;
+}
+
+.print-outline-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.print-outline-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.print-outline-btn:active {
+  transform: translateY(0);
 }
 
 .panel-content {

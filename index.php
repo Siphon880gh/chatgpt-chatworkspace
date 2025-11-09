@@ -72,7 +72,10 @@
     <div class="resize-handle" id="resizeHandle"></div>
 
     <div id="outlinePanel" class="panel">
-      <div class="panel-header">📋 Outline</div>
+      <div class="panel-header">
+        <span>📋 Outline</span>
+        <button class="print-outline-btn" onclick="printOutline()" title="Print Outline">🖨️ Print</button>
+      </div>
       <div id="outlineContent" class="panel-content">
         <div class="empty-state">
           <div class="empty-state-icon">📝</div>

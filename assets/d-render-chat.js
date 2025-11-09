@@ -2052,6 +2052,207 @@ async function handleUrlParameters() {
   }
 }
 
+/**
+ * Print the outline panel with all its content, formatting, and styles
+ */
+function printOutline() {
+  if (!currentChatId || turns.length === 0) {
+    alert('No chat loaded yet. Please load a chat first.');
+    return;
+  }
+
+  // Get the outline content
+  const outlineContent = document.getElementById('outlineContent');
+  if (!outlineContent) {
+    alert('Outline content not found.');
+    return;
+  }
+
+  // Create a new window for printing
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
+  if (!printWindow) {
+    alert('Failed to open print window. Please check your popup blocker.');
+    return;
+  }
+
+  // Clone the outline content
+  const contentClone = outlineContent.cloneNode(true);
+
+  // Build the print document
+  const printDocument = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Outline - Print</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      padding: 20px;
+      background: white;
+    }
+    
+    h1 {
+      margin-bottom: 20px;
+      color: #667eea;
+      font-size: 24px;
+    }
+    
+    /* Outline pair groups */
+    .outline-pair-group {
+      background: rgba(102, 126, 234, 0.03);
+      border: 1px solid rgba(102, 126, 234, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    
+    /* Outline items */
+    .outline-item {
+      margin-bottom: 12px;
+      padding: 8px;
+      border-radius: 6px;
+      page-break-inside: avoid;
+    }
+    
+    .outline-item[data-indent-level] {
+      margin-left: calc(var(--indent-level, 0) * 2ch);
+    }
+    
+    .outline-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .outline-label.user {
+      color: #1976d2;
+    }
+    
+    .outline-label.assistant {
+      color: #7b1fa2;
+    }
+    
+    .outline-summary {
+      font-size: 0.95rem;
+      color: #555;
+      line-height: 1.5;
+    }
+    
+    /* Comment styles */
+    .outline-heading-comment {
+      background: #fff8e1;
+      border-left: 4px solid #ffc107;
+      padding: 8px 12px;
+      margin: 6px 0;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    
+    .outline-turn-comment {
+      color: #666;
+      font-style: italic;
+      font-size: 0.85rem;
+      margin-top: 6px;
+      padding: 6px 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+    
+    /* Icon styles */
+    .comment-icon {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 6px;
+    }
+    
+    /* Column layouts */
+    .columns-2, .columns-3 {
+      display: grid;
+      gap: 12px;
+      margin: 8px 0;
+    }
+    
+    .columns-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .columns-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    
+    /* Collapsible sections */
+    details {
+      margin: 8px 0;
+      padding: 8px;
+      background: #f9f9f9;
+      border-radius: 4px;
+    }
+    
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      padding: 4px;
+      user-select: none;
+    }
+    
+    /* Hide interactive elements for print */
+    .outline-icons,
+    .outline-item-preview,
+    .outline-item-comment,
+    .outline-item-indent,
+    .outline-item-unindent {
+      display: none !important;
+    }
+    
+    /* Print-specific styles */
+    @media print {
+      body {
+        padding: 10px;
+      }
+      
+      .outline-pair-group {
+        page-break-inside: avoid;
+      }
+      
+      .outline-item {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>📋 Chat Outline</h1>
+  ${contentClone.innerHTML}
+</body>
+</html>
+  `;
+
+  // Write the document and trigger print
+  printWindow.document.write(printDocument);
+  printWindow.document.close();
+  
+  // Wait for resources to load before printing
+  printWindow.onload = function() {
+    printWindow.focus();
+    printWindow.print();
+  };
+}
+
 // Run on page load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', handleUrlParameters);

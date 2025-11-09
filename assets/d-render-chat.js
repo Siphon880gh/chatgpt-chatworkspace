@@ -2077,17 +2077,28 @@ function printOutline() {
     try {
       const notesData = JSON.parse(savedNotes);
       if (notesData.notes && notesData.notes.trim()) {
-        // Escape HTML and convert newlines to <br>
-        const escapedNotes = notesData.notes
+        // Escape HTML first
+        let processedNotes = notesData.notes
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/\n/g, '<br>');
+          .replace(/>/g, '&gt;');
+        
+        // Convert URLs to clickable links
+        const urlPattern = /(https?:\/\/[^\s]+)/gi;
+        processedNotes = processedNotes.replace(urlPattern, function(url) {
+          // Remove trailing punctuation that's not part of the URL
+          const cleanUrl = url.replace(/[.,;:!?)]$/, '');
+          const trailingPunct = url.length > cleanUrl.length ? url.slice(-1) : '';
+          return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${trailingPunct}`;
+        });
+        
+        // Convert newlines to <br>
+        processedNotes = processedNotes.replace(/\n/g, '<br>');
         
         notesHtml = `
           <div class="notes-section">
             <h2>📝 Notes</h2>
-            <div class="notes-content">${escapedNotes}</div>
+            <div class="notes-content">${processedNotes}</div>
           </div>
         `;
       }
@@ -2269,6 +2280,17 @@ function printOutline() {
       line-height: 1.6;
       white-space: pre-wrap;
       word-wrap: break-word;
+    }
+    
+    .notes-content a {
+      color: #667eea;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+    
+    .notes-content a:hover {
+      color: #764ba2;
+      text-decoration: underline;
     }
     
     /* Print-specific styles */

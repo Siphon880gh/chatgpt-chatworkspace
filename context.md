@@ -17,6 +17,7 @@
 - Auto-detect and render links from notes as clickable icons
 - Group user-assistant pairs in outline for better visual organization
 - Scroll to highlighted outline item with one click
+- Print outline with all customizations in formatted popup window
 
 ---
 
@@ -70,18 +71,18 @@ ChatWorkspace_{chatId}_html      // Original chat HTML (for URL ?open= parameter
 
 ```
 /Users/wengffung/dev/web/xny/chat/
-├── index.php                  (~106 lines) - Main UI structure (HTML input, notes textarea, detected links, panels, icon CDN links, clickable logo)
-├── share.php                  (~104 lines) - Backend API for sharing conversations
+├── index.php                  (~107 lines) - Main UI structure (HTML input, notes textarea, detected links, panels, icon CDN links, clickable logo, print button)
+├── share.php                  (~108 lines) - Backend API for sharing conversations (tracks new vs update)
 ├── README.md                  (~196 lines) - User-facing documentation
-├── context.md                 (~920 lines) - Developer documentation (this file)
+├── context.md                 (~1070 lines) - Developer documentation (this file)
 ├── shared/                    - Directory for shared conversation JSON files
 │   └── {chatId}.json         - Shared conversation data
 └── assets/
     ├── a-load-chat.js         (2 lines) - Console snippet to extract ChatGPT HTML
     ├── b-store-turns.js       (32 lines) - Standalone turn collector (not used in main flow)
     ├── c-hash-chat.js         (~90 lines) - SHA-256 hashing utilities
-    ├── d-render-chat.js       (~1860 lines) - Core application logic
-    └── styles.css             (~1397 lines) - All styling (gradients, panels, modals, icon dropdown)
+    ├── d-render-chat.js       (~2310 lines) - Core application logic (includes print functionality)
+    └── styles.css             (~1760 lines) - All styling (gradients, panels, modals, icon dropdown, print button)
 ```
 
 ---
@@ -550,8 +551,12 @@ Content-Type: application/json
 - **Heading Comment:** Always displayed above role label, highlighted, has own icon dropdown toolbar
 - **Turn Comment:** Always displayed below summary text with full HTML toolbar
 - Both sections have **Icon Dropdown (🏷️)** toolbar:
-  - Grid dropdown (4x5) with 20 colored semantic icons
-  - Icons organized by color: Purple (data ops), Green (positive), Blue (info), Red (warnings)
+  - Grid dropdown with 24 colored semantic icons (shared `commentIconOptions` array)
+  - Icons organized by color: 
+    - Purple (data ops): sparkles, pluck out/in, branch off, add, remove, expand on, contract
+    - Green (positive): check, bolt, arrows
+    - Blue (info): question, info, star, heart, lightbulb, bookmark, flag
+    - Red (warnings): xmark, exclamation, triangle-warning, bell, fire
   - Supports Font Awesome 6.5.1 and Flaticon Uicons 2.6.0
   - Inserts icon HTML at beginning of comment for visual categorization
   - Opening one dropdown closes the other to prevent overlap
@@ -657,6 +662,32 @@ Content-Type: application/json
 
 **Storage:** None (derived from notes text in real-time)
 
+### Feature: Print Outline
+
+**Files:** `d-render-chat.js` (printOutline function), `index.php` (print button), `styles.css` (print button styles)
+**How:**
+- Print button (🖨️) in outline panel header
+- `printOutline()` function creates new window with formatted content
+- Includes complete outline structure with all customizations:
+  - Outline pair groups with visual separation
+  - Custom summaries and indentation
+  - Heading comments (highlighted callout boxes)
+  - Turn comments (italic, gray background)
+  - All icon formatting preserved (Font Awesome + Flaticon)
+  - HTML elements (collapsible sections, columns)
+- Includes chat notes section if notes exist:
+  - Displayed in highlighted box above outline
+  - URLs converted to clickable links
+  - Preserves newlines and formatting
+- Print-specific CSS:
+  - Hides interactive elements (hover icons, buttons)
+  - Page-break-inside: avoid for clean printing
+  - Responsive column layouts
+- Opens in new window with print dialog
+- Waits for icon CDN resources to load before printing
+
+**Storage:** None (generates print view from current state)
+
 ### Feature: Message Preview
 
 **File:** `d-render-chat.js` (preview functions, late-middle)  
@@ -739,10 +770,14 @@ Content-Type: application/json
 5. **Server Processing:**
    - Validates conversation ID (alphanumeric, 32-128 chars)
    - Creates `shared/` directory if needed
+   - Checks if file already exists (tracks `isNew` flag)
    - Saves to `shared/{chatId}.json` with timestamp
-   - Returns success with share URL
+   - Returns success with share URL and `isNew` flag
 6. **UI Response:** 
    - Shows success message with shareable link
+   - Displays different messages based on `isNew` flag:
+     - New share: "Share Link Created! Your chat is ready to share with all customizations"
+     - Update: "Share Content Updated! Your shared chat has been updated with the latest customizations"
    - Auto-copies link to clipboard
    - Displays formatted URL: `?shared={chatId}`
 
@@ -875,8 +910,8 @@ php -S localhost:8000
 ## 📊 Performance Considerations
 
 **File Sizes:**
-- `d-render-chat.js`: ~1860 lines (~65KB) - Core application logic with chat rendering, outline, comments, preview, share, copy, link detection, scroll features
-- `styles.css`: ~1480 lines (~40KB) - All styles inline, no external dependencies
+- `d-render-chat.js`: ~2310 lines (~80KB) - Core application logic with chat rendering, outline, comments, preview, share, copy, link detection, scroll features, print functionality
+- `styles.css`: ~1760 lines (~48KB) - All styles inline, no external dependencies
 - Icon libraries: Font Awesome 6.5.1 + Flaticon Uicons 2.6.0 (CDN, ~100KB combined)
 
 **LocalStorage Limits:**
@@ -964,6 +999,7 @@ See `README.md` for user-facing roadmap. Developer considerations:
 - Scroll to highlighted → `d-render-chat.js` (`scrollToHighlighted`, line ~1845)
 - Outline pair grouping → `d-render-chat.js` (`renderOutline`, line ~553)
 - Link detection → `d-render-chat.js` (`detectLinks`, `updateDetectedLinks`, line ~1763)
+- Print outline → `d-render-chat.js` (`printOutline`, line ~2055)
 - Hashing implementation → `c-hash-chat.js` (`hashChat`, throughout)
 - Comment system → `d-render-chat.js` (comment functions, `showCommentEditor`, `insertAtCursor`, middle-late)
 - Icon dropdown → `d-render-chat.js` (`showCommentEditor`, icon options arrays for both heading and turn, line ~975 and ~1085)
@@ -1003,24 +1039,36 @@ item.addEventListener('click', (e) => {
 ---
 
 **Last Updated:** 2025-11-09  
-**File Version:** 1.6  
+**File Version:** 1.7  
 **Project Status:** Active Development  
 **Recent Updates (Last 5 Commits):**
-- **Scroll to Highlighted:** Added button (⬇) to scroll outline panel to currently highlighted item (commit 97b3c62)
-  - Smooth scrolling with center alignment
-  - Z-index of controls increased to 9999 for proper layering
-- **Link Detection in Notes:** Auto-detects and renders URLs from notes as clickable icons (commit ad3eaf3)
-  - Globe icons with hover animation to show domain name
-  - Auto-updates in real-time as user types
+- **Share Modal Status:** Share modal now clearly indicates whether creating new share or updating existing (commit 79caca0)
+  - Backend tracks if file already exists and returns `isNew` flag
+  - Frontend displays different success messages: "Share Link Created!" vs "Share Content Updated!"
+  - Improves user awareness when re-sharing updated content
+- **Print with Clickable Links:** Print popup now renders links in notes as clickable (commit 5db65f8)
+  - Detects HTTP(S) URLs in notes and converts to anchor tags
+  - Links styled with gradient purple color scheme
   - Opens in new tab with security attributes
-- **Outline Pair Grouping:** User+assistant messages grouped together in outline (commit f0aac8a)
-  - Visual separation with subtle background and border
-  - Improves conversation flow readability
-- **Clickable Logo Reset:** Logo now links to home/reset (commit d39d0f7)
-  - Simple UX improvement for quick page reset
-- **Heading Icon Toolbar:** Added icon dropdown to heading comment editor (commit 965edf0)
-  - Same 20 colored semantic icons as turn comments
-  - Both dropdowns close when other is opened to prevent overlap
+  - Removes trailing punctuation from URLs
+- **Print with Notes:** Print outline feature now includes chat notes section (commit 3b765d4)
+  - Notes displayed in highlighted box above outline content
+  - Preserves formatting with newlines converted to `<br>`
+  - Page-break-inside: avoid for clean printing
+  - Only shows notes section if notes exist
+- **Print Outline Feature:** Added ability to print outline with all formatting (commits de126e8, 3b765d4)
+  - Print button (🖨️) in outline panel header
+  - Opens new window with styled print-friendly version
+  - Preserves all outline structure: pair groups, indentation, comments, icons
+  - Includes Font Awesome and Flaticon CDN links for icon rendering
+  - Hides interactive elements (hover icons, buttons) in print view
+  - Responsive print styles with page-break-inside: avoid
+- **DRY Icon Options:** Refactored icon dropdown to use shared array for both heading and turn comments (commit 1950bbf)
+  - Single `commentIconOptions` array used by both dropdowns
+  - Added new icons: branch off, add, remove, expand on, contract
+  - Reorganized icons: moved heart from green to blue category
+  - Removed asterisk icon
+  - Total of 24 icons now available
 
 **Previous Updates:**
 - **Copy Chat Turn Button:** Added copy button (📋) to each chat turn for quick text copying to clipboard with visual feedback

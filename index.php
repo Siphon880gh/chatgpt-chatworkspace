@@ -10,7 +10,7 @@
 </head>
 <body>
   <header>
-    <h1>🧠 ChatGPT ChatWorkspace</h1>
+    <a href="./" style="text-decoration:none; color:unset;"><h1>🧠 ChatGPT ChatWorkspace</h1></a>
     <p>Import, store, and navigate ChatGPT conversations</p>
   </header>
 

@@ -2068,6 +2068,34 @@ function printOutline() {
     return;
   }
 
+  // Load notes for this chat
+  const notesKey = `ChatWorkspace_${currentChatId}_notes`;
+  const savedNotes = localStorage.getItem(notesKey);
+  let notesHtml = '';
+  
+  if (savedNotes) {
+    try {
+      const notesData = JSON.parse(savedNotes);
+      if (notesData.notes && notesData.notes.trim()) {
+        // Escape HTML and convert newlines to <br>
+        const escapedNotes = notesData.notes
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br>');
+        
+        notesHtml = `
+          <div class="notes-section">
+            <h2>📝 Notes</h2>
+            <div class="notes-content">${escapedNotes}</div>
+          </div>
+        `;
+      }
+    } catch (e) {
+      console.error('Failed to load notes:', e);
+    }
+  }
+
   // Create a new window for printing
   const printWindow = window.open('', '_blank', 'width=800,height=600');
   if (!printWindow) {
@@ -2219,6 +2247,30 @@ function printOutline() {
       display: none !important;
     }
     
+    /* Notes section styles */
+    .notes-section {
+      background: #f0f7ff;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      page-break-inside: avoid;
+    }
+    
+    .notes-section h2 {
+      color: #667eea;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+    
+    .notes-content {
+      color: #333;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    
     /* Print-specific styles */
     @media print {
       body {
@@ -2232,11 +2284,16 @@ function printOutline() {
       .outline-item {
         page-break-inside: avoid;
       }
+      
+      .notes-section {
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>
 <body>
   <h1>📋 Chat Outline</h1>
+  ${notesHtml}
   ${contentClone.innerHTML}
 </body>
 </html>

@@ -976,6 +976,8 @@ function showCommentEditor(turn, index) {
     { icon: 'fa-circle-check', title: 'Check', color: '#16a34a', html: '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> ' },
     { icon: 'fa-heart', title: 'Heart', color: '#16a34a', html: '<i class="fa-solid fa-heart" style="color: #16a34a;"></i> ' },
     { icon: 'fa-bolt', title: 'Bolt', color: '#16a34a', html: '<i class="fa-solid fa-bolt" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-circle-arrow-right', title: 'Right Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-right" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-circle-arrow-left', title: 'Left Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-left" style="color: #16a34a;"></i> ' },
     { icon: 'fa-asterisk', title: 'Asterisk', color: '#2563eb', html: '<i class="fa-solid fa-asterisk" style="color: #2563eb;"></i> ' },
     { icon: 'fa-circle-question', title: 'Question', color: '#2563eb', html: '<i class="fa-solid fa-circle-question" style="color: #2563eb;"></i> ' },
     { icon: 'fa-circle-info', title: 'Info', color: '#2563eb', html: '<i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> ' },

@@ -73,16 +73,17 @@ ChatWorkspace_{chatId}_html      // Original chat HTML (for URL ?open= parameter
 /Users/wengffung/dev/web/xny/chat/
 ├── index.php                  (~107 lines) - Main UI structure (HTML input, notes textarea, detected links, panels, icon CDN links, clickable logo, print button)
 ├── share.php                  (~108 lines) - Backend API for sharing conversations (tracks new vs update)
-├── README.md                  (~196 lines) - User-facing documentation
-├── context.md                 (~1070 lines) - Developer documentation (this file)
+├── config.json                (~10 lines) - Application configuration (hover preview settings)
+├── README.md                  (~230 lines) - User-facing documentation
+├── context.md                 (~1100 lines) - Developer documentation (this file)
 ├── shared/                    - Directory for shared conversation JSON files
 │   └── {chatId}.json         - Shared conversation data
 └── assets/
     ├── a-load-chat.js         (2 lines) - Console snippet to extract ChatGPT HTML
     ├── b-store-turns.js       (32 lines) - Standalone turn collector (not used in main flow)
     ├── c-hash-chat.js         (~90 lines) - SHA-256 hashing utilities
-    ├── d-render-chat.js       (~2310 lines) - Core application logic (includes print functionality)
-    └── styles.css             (~1760 lines) - All styling (gradients, panels, modals, icon dropdown, print button)
+    ├── d-render-chat.js       (~2525 lines) - Core application logic (config loading, hover preview, print functionality)
+    └── styles.css             (~1824 lines) - All styling (gradients, panels, modals, icon dropdown, print button, hover preview)
 ```
 
 ---
@@ -146,6 +147,43 @@ document.querySelector("[data-turn-id]").parentElement.innerHTML
 currentChatId = await hashChat(turns);
 localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettings));
 ```
+
+---
+
+### 3.5. Configuration System (`config.json` + `d-render-chat.js`)
+
+**Location:** `config.json` at root, loaded by `loadConfig()` in `d-render-chat.js` (near top)  
+**Purpose:** Centralized application settings for customizable UI behaviors
+
+**Configuration Structure:**
+```javascript
+{
+  "hoverPreview": {
+    "enabled": true,          // Enable/disable hover preview feature
+    "opacity": 0.85,          // Transparency level (0-1)
+    "typingSpeedMs": 24,      // Animation speed per character
+    "maxWidth": 400           // Maximum popup width in pixels
+  }
+}
+```
+
+**Loading Flow (near top of d-render-chat.js):**
+1. `loadConfig()` fetches `config.json` on page load
+2. Parses JSON and stores in `appConfig` global variable
+3. Applies CSS variables via `document.documentElement.style.setProperty()`
+4. Falls back to hardcoded defaults if file not found
+
+**CSS Variable Application:**
+```javascript
+root.style.setProperty('--hover-preview-opacity', appConfig.hoverPreview.opacity);
+root.style.setProperty('--hover-preview-max-width', `${appConfig.hoverPreview.maxWidth}px`);
+```
+
+**Why configuration file?**
+- Easy customization without code changes
+- Clean separation of behavior and implementation
+- Supports future expansion of configurable features
+- JSON format is human-readable and editable
 
 ---
 
@@ -255,11 +293,28 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
   - **Turn Comment:** Below summary, italic, gray, with HTML formatting toolbar
 - Adds hover icons (→ indent, ← unindent, 🗨️/💬 for comment, 👁 for preview)
 - Attaches click handlers for navigation
+- Sets up hover preview on role labels (User/Assistant text)
 
 **Editable Summaries:**
 - `contentEditable="true"` on `.outline-summary`
 - Saves on blur or Enter key
 - Stores in `ChatWorkspace_{chatId}_outline` localStorage key
+
+**Hover Preview Feature:**
+- **`setupHoverPreview(item, turn, index)`** - Configurable animated text preview
+  - Only activates if `appConfig.hoverPreview.enabled` is true
+  - Shows when hovering over role label (User/Assistant text)
+  - Displays first 150 characters of turn content with typing animation
+  - Uses config values for opacity, speed, and width
+  - 400ms delay before showing (prevents accidental triggers)
+- **`positionPreview(previewElement, item)`** - Smart positioning
+  - Positions below label by default
+  - Adjusts to avoid screen edges
+  - Shows above if would go off bottom
+- **`clearHoverPreview()`** - Cleanup
+  - Removes preview element
+  - Clears animation timers
+  - Called on mouse leave
 
 #### **Section D: Indentation System (middle)**
 
@@ -492,13 +547,14 @@ Content-Type: application/json
 7. **Copy Chat Turn Button (middle)** - Sticky positioned copy button, hover states, visual feedback
 8. **Markdown Styles (middle)** - Headers (h1-h6), lists (ul/ol/li), blockquotes, paragraphs, bold/italic
 9. **ChatGPT Data Attributes (middle)** - Spacing for `[data-start]`, `[data-is-last-node]` attributes
-10. **Outline Items (middle)** - Hover effects, editable summaries, icons, scroll-highlighting
+10. **Outline Items (middle)** - Hover effects, editable summaries, icons, scroll-highlighting, role label cursor change
 11. **Outline Pair Groups (middle)** - Visual grouping of user+assistant pairs with subtle background and border
 12. **Comment System (middle-late)** - Display styles, editor modal, HTML element support (columns, collapsible)
 13. **Comment Toolbar (middle-late)** - Toolbar buttons for inserting HTML snippets, icon dropdown grid (4x5) for both heading and turn comments
 14. **Preview Panel (late)** - Fixed bottom, slide-up animation
 15. **Controls (late)** - Zoom buttons, resize handle, reset button, scroll to highlighted button
-16. **Responsive (end)** - Mobile breakpoints, stacked columns
+16. **Hover Preview Tooltip (late)** - Glassmorphic popup, typing animation, blinking cursor, smart positioning, dynamic CSS variables
+17. **Responsive (end)** - Mobile breakpoints, stacked columns, hover preview width adjustment
 
 **Design System:**
 - Primary gradient: `#667eea → #764ba2`
@@ -542,6 +598,25 @@ Content-Type: application/json
 - Visual hierarchy for organizing conversation flow
 
 **Storage:** `ChatWorkspace_{chatId}_indents` with turn index as key, value is indent level (0+)
+
+### Feature: Hover Preview with Typing Animation
+
+**Files:** `config.json`, `d-render-chat.js` (setupHoverPreview, positionPreview, clearHoverPreview functions, middle), `styles.css` (hover preview styles, late)  
+**How:**
+- Configurable via `config.json` with settings for:
+  - `enabled`: Toggle feature on/off
+  - `opacity`: Transparency level (0-1)
+  - `typingSpeedMs`: Animation speed per character (ms)
+  - `maxWidth`: Maximum popup width in pixels
+- Triggers on hover over role labels (User/Assistant text)
+- Shows first 150 characters of turn content with typing animation
+- Smart positioning: below by default, above if would go off screen
+- Glassmorphic design with backdrop blur and transparency
+- Blinking cursor animation during typing, removed when complete
+- 400ms delay before showing to prevent accidental triggers
+- CSS variables (`--hover-preview-opacity`, `--hover-preview-max-width`) set dynamically from config
+
+**Storage:** None (ephemeral UI feature, config in `config.json`)
 
 ### Feature: Comments (Two Types with HTML Support)
 
@@ -831,6 +906,9 @@ let scrollObserver = null;       // IntersectionObserver for scroll tracking
 let currentPreviewIndex = null;  // Currently previewed turn
 let currentFontSize = 100;       // Zoom level percentage
 let isResizing = false;          // Resize drag state
+let hoverPreviewTimeout = null;  // Hover preview delay timer
+let typingInterval = null;       // Typing animation interval
+let appConfig = null;            // Application configuration from config.json
 ```
 
 **LocalStorage Schema:**
@@ -991,24 +1069,27 @@ See `README.md` for user-facing roadmap. Developer considerations:
 
 **Where to find...**
 
+- Configuration loading → `d-render-chat.js` (`loadConfig`, near top) + `config.json` (root)
 - Chat parsing logic → `d-render-chat.js` (`collectTurns`, near top)
 - Chat rendering logic → `d-render-chat.js` (`renderChat`, `extractFormattedContent`, early)
 - Collapsible chat bubbles → `d-render-chat.js` (`toggleChatTurnCollapse`, middle)
-- Copy chat turn → `d-render-chat.js` (`copyChatTurnText`, line ~794)
+- Copy chat turn → `d-render-chat.js` (`copyChatTurnText`, middle)
 - Scroll tracking → `d-render-chat.js` (`setupScrollTracking`, `updateOutlineHighlight`, early-middle)
-- Scroll to highlighted → `d-render-chat.js` (`scrollToHighlighted`, line ~1845)
-- Outline pair grouping → `d-render-chat.js` (`renderOutline`, line ~553)
-- Link detection → `d-render-chat.js` (`detectLinks`, `updateDetectedLinks`, line ~1763)
-- Print outline → `d-render-chat.js` (`printOutline`, line ~2055)
+- Scroll to highlighted → `d-render-chat.js` (`scrollToHighlighted`, middle-late)
+- Outline pair grouping → `d-render-chat.js` (`renderOutline`, middle)
+- Hover preview → `d-render-chat.js` (`setupHoverPreview`, `positionPreview`, `clearHoverPreview`, middle)
+- Link detection → `d-render-chat.js` (`detectLinks`, `updateDetectedLinks`, late)
+- Print outline → `d-render-chat.js` (`printOutline`, late)
 - Hashing implementation → `c-hash-chat.js` (`hashChat`, throughout)
 - Comment system → `d-render-chat.js` (comment functions, `showCommentEditor`, `insertAtCursor`, middle-late)
-- Icon dropdown → `d-render-chat.js` (`showCommentEditor`, icon options arrays for both heading and turn, line ~975 and ~1085)
+- Icon dropdown → `d-render-chat.js` (`showCommentEditor`, icon options arrays for both heading and turn, middle-late)
 - Preview panel → `d-render-chat.js` (`showMessagePreview`, late-middle)
-- Notes system → `d-render-chat.js` (`loadChatNotes`, `saveChatNotes`, late) + `index.php` (lines 26-34)
-- Clickable logo reset → `index.php` (header section, line ~13)
-- Share/Open system → `d-render-chat.js` (`handleShareClick`, `showShareModal`, `handleUrlParameters`, lines 888-1359) + `share.php`
-- URL parameter handling → `d-render-chat.js` (`handleUrlParameters`, lines 1237-1359)
+- Notes system → `d-render-chat.js` (`loadChatNotes`, `saveChatNotes`, late) + `index.php` (notes section)
+- Clickable logo reset → `index.php` (header section)
+- Share/Open system → `d-render-chat.js` (`handleShareClick`, `showShareModal`, `handleUrlParameters`, late) + `share.php`
+- URL parameter handling → `d-render-chat.js` (`handleUrlParameters`, late)
 - Styling rules → `styles.css` (organized by feature)
+- Hover preview styles → `styles.css` (late section, CSS variables)
 - localStorage keys → `d-render-chat.js` (persistence functions, late)
 - ChatGPT HTML extraction → `d-render-chat.js` (`extractFormattedContent`, early)
 - Markdown parsing (fallback) → `d-render-chat.js` (`formatContentWithCode`, early-middle)
@@ -1039,36 +1120,37 @@ item.addEventListener('click', (e) => {
 ---
 
 **Last Updated:** 2025-11-09  
-**File Version:** 1.7  
+**File Version:** 1.8  
 **Project Status:** Active Development  
 **Recent Updates (Last 5 Commits):**
-- **Share Modal Status:** Share modal now clearly indicates whether creating new share or updating existing (commit 79caca0)
+- **Hover Preview with Typing Animation:** Added configurable hover preview feature
+  - Triggers when hovering over role labels (User/Assistant text)
+  - Shows first 150 characters of turn content with animated typing effect
+  - Glassmorphic design with backdrop blur and configurable transparency
+  - Smart positioning that avoids screen edges
+  - Blinking cursor during typing, removed when complete
+  - 400ms delay to prevent accidental triggers
+  - Role labels show help cursor and opacity change on hover for discoverability
+- **Configuration System:** Created `config.json` for centralized app settings
+  - `loadConfig()` function fetches and parses config on page load
+  - Settings applied via CSS variables for dynamic styling
+  - Hover preview configurable: enabled, opacity, typingSpeedMs, maxWidth
+  - Falls back to defaults if config file missing
+  - Enables future expansion of configurable features without code changes
+- **Share Modal Status:** Share modal now clearly indicates whether creating new share or updating existing
   - Backend tracks if file already exists and returns `isNew` flag
   - Frontend displays different success messages: "Share Link Created!" vs "Share Content Updated!"
   - Improves user awareness when re-sharing updated content
-- **Print with Clickable Links:** Print popup now renders links in notes as clickable (commit 5db65f8)
+- **Print with Clickable Links:** Print popup now renders links in notes as clickable
   - Detects HTTP(S) URLs in notes and converts to anchor tags
   - Links styled with gradient purple color scheme
   - Opens in new tab with security attributes
   - Removes trailing punctuation from URLs
-- **Print with Notes:** Print outline feature now includes chat notes section (commit 3b765d4)
+- **Print with Notes:** Print outline feature now includes chat notes section
   - Notes displayed in highlighted box above outline content
   - Preserves formatting with newlines converted to `<br>`
   - Page-break-inside: avoid for clean printing
   - Only shows notes section if notes exist
-- **Print Outline Feature:** Added ability to print outline with all formatting (commits de126e8, 3b765d4)
-  - Print button (🖨️) in outline panel header
-  - Opens new window with styled print-friendly version
-  - Preserves all outline structure: pair groups, indentation, comments, icons
-  - Includes Font Awesome and Flaticon CDN links for icon rendering
-  - Hides interactive elements (hover icons, buttons) in print view
-  - Responsive print styles with page-break-inside: avoid
-- **DRY Icon Options:** Refactored icon dropdown to use shared array for both heading and turn comments (commit 1950bbf)
-  - Single `commentIconOptions` array used by both dropdowns
-  - Added new icons: branch off, add, remove, expand on, contract
-  - Reorganized icons: moved heart from green to blue category
-  - Removed asterisk icon
-  - Total of 24 icons now available
 
 **Previous Updates:**
 - **Copy Chat Turn Button:** Added copy button (📋) to each chat turn for quick text copying to clipboard with visual feedback

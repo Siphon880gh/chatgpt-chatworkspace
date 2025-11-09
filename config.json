@@ -1,0 +1,9 @@
+{
+  "hoverPreview": {
+    "enabled": true,
+    "opacity": 0.2,
+    "typingSpeedMs": 4,
+    "maxWidth": 600
+  }
+}
+

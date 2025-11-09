@@ -1,6 +1,41 @@
 let currentChatId = null;
 let turns = [];
 let scrollObserver = null; // For tracking which turn is in view
+let hoverPreviewTimeout = null; // For hover preview delay
+let typingInterval = null; // For typing animation
+let appConfig = null; // Application configuration
+
+/**
+ * Load application configuration from config.json
+ */
+async function loadConfig() {
+  try {
+    const response = await fetch('config.json');
+    if (!response.ok) {
+      throw new Error('Config file not found');
+    }
+    appConfig = await response.json();
+    console.log('Loaded config:', appConfig);
+    
+    // Apply CSS variables for hover preview
+    if (appConfig.hoverPreview) {
+      const root = document.documentElement;
+      root.style.setProperty('--hover-preview-opacity', appConfig.hoverPreview.opacity);
+      root.style.setProperty('--hover-preview-max-width', `${appConfig.hoverPreview.maxWidth}px`);
+    }
+  } catch (error) {
+    console.warn('Failed to load config, using defaults:', error);
+    // Set default config
+    appConfig = {
+      hoverPreview: {
+        enabled: true,
+        opacity: 0.85,
+        typingSpeedMs: 24,
+        maxWidth: 400
+      }
+    };
+  }
+}
 
 /**
  * Parse pasted HTML and extract conversation turns
@@ -580,6 +615,9 @@ function renderOutline(turns) {
     const label = document.createElement('div');
     label.className = 'outline-label';
     label.textContent = turn.type === 'user' ? 'User' : 'Assistant';
+    
+    // Add hover preview to label only
+    setupHoverPreview(label, turn, index);
 
     const summary = document.createElement('div');
     summary.className = 'outline-summary';
@@ -740,6 +778,139 @@ function renderOutline(turns) {
 }
 
 let currentPreviewIndex = null;
+
+/**
+ * Setup hover preview with typing animation for an outline item
+ */
+function setupHoverPreview(item, turn, index) {
+  // Check if hover preview is enabled in config
+  if (!appConfig || !appConfig.hoverPreview || !appConfig.hoverPreview.enabled) {
+    return;
+  }
+  
+  let previewElement = null;
+  let currentCharIndex = 0;
+  let fullText = '';
+  
+  item.addEventListener('mouseenter', (e) => {
+    // Clear any existing preview
+    clearHoverPreview();
+    
+    // Get the original text, limited to 150 characters
+    fullText = turn.content.slice(0, 150).replace(/\n/g, ' ');
+    if (turn.content.length > 150) {
+      fullText += '...';
+    }
+    
+    // Start with a delay
+    hoverPreviewTimeout = setTimeout(() => {
+      // Create preview element
+      previewElement = document.createElement('div');
+      previewElement.className = 'outline-hover-preview';
+      
+      const textSpan = document.createElement('span');
+      textSpan.className = 'outline-hover-preview-text';
+      
+      const cursor = document.createElement('span');
+      cursor.className = 'outline-hover-preview-cursor';
+      
+      previewElement.appendChild(textSpan);
+      previewElement.appendChild(cursor);
+      document.body.appendChild(previewElement);
+      
+      // Position the preview below the item
+      positionPreview(previewElement, item);
+      
+      // Start typing animation with speed from config
+      currentCharIndex = 0;
+      const typingSpeed = appConfig.hoverPreview.typingSpeedMs || 24;
+      typingInterval = setInterval(() => {
+        if (currentCharIndex < fullText.length) {
+          textSpan.textContent = fullText.slice(0, currentCharIndex + 1);
+          currentCharIndex++;
+        } else {
+          // Remove cursor when done typing
+          if (cursor.parentElement) {
+            cursor.remove();
+          }
+          clearInterval(typingInterval);
+          typingInterval = null;
+        }
+      }, typingSpeed);
+      
+    }, 400); // 400ms delay before showing preview
+  });
+  
+  item.addEventListener('mouseleave', () => {
+    clearHoverPreview();
+  });
+  
+  // Update position on scroll
+  const outlineContent = document.getElementById('outlineContent');
+  if (outlineContent) {
+    const scrollHandler = () => {
+      if (previewElement && previewElement.parentElement) {
+        positionPreview(previewElement, item);
+      }
+    };
+    outlineContent.addEventListener('scroll', scrollHandler);
+  }
+}
+
+/**
+ * Position the hover preview relative to the outline item
+ */
+function positionPreview(previewElement, item) {
+  const itemRect = item.getBoundingClientRect();
+  const previewRect = previewElement.getBoundingClientRect();
+  
+  // Position below the item
+  let top = itemRect.bottom + 10;
+  let left = itemRect.left;
+  
+  // Ensure preview doesn't go off-screen
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  // Adjust horizontal position if needed
+  if (left + previewRect.width > viewportWidth - 20) {
+    left = viewportWidth - previewRect.width - 20;
+  }
+  if (left < 20) {
+    left = 20;
+  }
+  
+  // If preview would go off bottom, show above instead
+  if (top + previewRect.height > viewportHeight - 20) {
+    top = itemRect.top - previewRect.height - 10;
+  }
+  
+  previewElement.style.top = `${top}px`;
+  previewElement.style.left = `${left}px`;
+}
+
+/**
+ * Clear the hover preview and stop any animations
+ */
+function clearHoverPreview() {
+  // Clear timeout
+  if (hoverPreviewTimeout) {
+    clearTimeout(hoverPreviewTimeout);
+    hoverPreviewTimeout = null;
+  }
+  
+  // Clear typing interval
+  if (typingInterval) {
+    clearInterval(typingInterval);
+    typingInterval = null;
+  }
+  
+  // Remove preview element
+  const existingPreview = document.querySelector('.outline-hover-preview');
+  if (existingPreview) {
+    existingPreview.remove();
+  }
+}
 
 /**
  * Load indents data for the current chat
@@ -2340,8 +2511,14 @@ function printOutline() {
 
 // Run on page load
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', handleUrlParameters);
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadConfig();
+    handleUrlParameters();
+  });
 } else {
-  handleUrlParameters();
+  (async () => {
+    await loadConfig();
+    handleUrlParameters();
+  })();
 }
 

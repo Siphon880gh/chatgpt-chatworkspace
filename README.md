@@ -155,9 +155,41 @@ Once the HTML is loaded:
 │   ├── c-hash-chat.js       // Generate unique hash IDs for chats
 │   ├── d-render-chat.js     // Main rendering logic, outline, comments, preview
 │   └── styles.css           // All application styling
+├── config.json              // Application configuration
 ├── index.html               // UI layout with panels
 └── README.md                // (this file)
 ```
+
+---
+
+## ⚙️ Configuration
+
+The app can be customized via `config.json` in the root directory. This file controls various UI behaviors:
+
+### Hover Preview Settings
+
+```json
+{
+  "hoverPreview": {
+    "enabled": true,
+    "opacity": 0.85,
+    "typingSpeedMs": 24,
+    "maxWidth": 400
+  }
+}
+```
+
+**Options:**
+- **`enabled`** (boolean): Enable/disable the hover preview feature
+- **`opacity`** (number, 0-1): Transparency level of the preview popup (0 = fully transparent, 1 = fully opaque)
+- **`typingSpeedMs`** (number): Animation speed in milliseconds per character (lower = faster)
+- **`maxWidth`** (number): Maximum width of the preview popup in pixels
+
+**Example customizations:**
+- Faster typing: Set `typingSpeedMs` to `15`
+- More transparent popup: Set `opacity` to `0.7`
+- Wider preview: Set `maxWidth` to `500`
+- Disable feature: Set `enabled` to `false`
 
 ---
 
@@ -178,11 +210,13 @@ All data persists between sessions and is specific to each conversation.
 - ✅ **Chat Persistence**: Each conversation gets a unique hash ID for persistent storage
 - ✅ **Customizable Outline**: Edit summary text for any turn
 - ✅ **Comments**: Add notes to specific turns with toggle view modes
+- ✅ **Hover Preview**: Animated typing preview of turn content when hovering over role labels (configurable)
 - ✅ **Preview Panel**: Quick view of full messages without scrolling
 - ✅ **Zoom Controls**: Adjust chat text size
 - ✅ **Resizable Panels**: Drag to resize chat/outline panels
 - ✅ **Code Block Support**: Syntax highlighting with copy buttons
 - ✅ **Color-coded Turns**: Visual distinction between user and assistant messages
+- ✅ **Configurable UI**: Customize behavior via `config.json`
 
 ## 🧠 Future Ideas
 

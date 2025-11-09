@@ -973,15 +973,27 @@ function showCommentEditor(turn, index) {
   
   // Icon options
   const iconOptions = [
-    { icon: 'fa-circle-exclamation', title: 'Exclamation', html: '<i class="fa-solid fa-circle-exclamation"></i> ' },
-    { icon: 'fa-circle-question', title: 'Question', html: '<i class="fa-solid fa-circle-question"></i> ' },
-    { icon: 'fa-asterisk', title: 'Asterisk', html: '<i class="fa-solid fa-asterisk"></i> ' }
+    { icon: 'fa-circle-check', title: 'Check', color: '#16a34a', html: '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-heart', title: 'Heart', color: '#16a34a', html: '<i class="fa-solid fa-heart" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-bolt', title: 'Bolt', color: '#16a34a', html: '<i class="fa-solid fa-bolt" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-asterisk', title: 'Asterisk', color: '#2563eb', html: '<i class="fa-solid fa-asterisk" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-circle-question', title: 'Question', color: '#2563eb', html: '<i class="fa-solid fa-circle-question" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-circle-info', title: 'Info', color: '#2563eb', html: '<i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-star', title: 'Star', color: '#2563eb', html: '<i class="fa-solid fa-star" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-lightbulb', title: 'Idea', color: '#2563eb', html: '<i class="fa-solid fa-lightbulb" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-bookmark', title: 'Bookmark', color: '#2563eb', html: '<i class="fa-solid fa-bookmark" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-circle-exclamation', title: 'Exclamation', color: '#dc2626', html: '<i class="fa-solid fa-circle-exclamation" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-triangle-exclamation', title: 'Warning', color: '#dc2626', html: '<i class="fa-solid fa-triangle-exclamation" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-circle-xmark', title: 'Error', color: '#dc2626', html: '<i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-flag', title: 'Flag', color: '#dc2626', html: '<i class="fa-solid fa-flag" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-bell', title: 'Alert', color: '#dc2626', html: '<i class="fa-solid fa-bell" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-fire', title: 'Fire', color: '#dc2626', html: '<i class="fa-solid fa-fire" style="color: #dc2626;"></i> ' }
   ];
   
   iconOptions.forEach(option => {
     const iconBtn = document.createElement('button');
     iconBtn.className = 'toolbar-dropdown-item';
-    iconBtn.innerHTML = `<i class="fa-solid ${option.icon}"></i>`;
+    iconBtn.innerHTML = `<i class="fa-solid ${option.icon}"${option.color ? ` style="color: ${option.color};"` : ''}></i>`;
     iconBtn.title = option.title;
     iconBtn.type = 'button';
     iconBtn.addEventListener('click', (e) => {

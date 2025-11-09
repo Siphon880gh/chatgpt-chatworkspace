@@ -550,7 +550,24 @@ function renderOutline(turns) {
   const commentsData = loadCommentsData();
   const indentsData = loadIndentsData();
 
+  // Group turns into pairs (user + assistant)
+  let currentPairGroup = null;
+  
   turns.forEach((turn, index) => {
+    // Create a new pair group when we encounter a user message
+    if (turn.type === 'user') {
+      currentPairGroup = document.createElement('div');
+      currentPairGroup.className = 'outline-pair-group';
+      outlineContent.appendChild(currentPairGroup);
+    }
+    
+    // If we don't have a group yet (conversation starts with assistant), create one
+    if (!currentPairGroup) {
+      currentPairGroup = document.createElement('div');
+      currentPairGroup.className = 'outline-pair-group';
+      outlineContent.appendChild(currentPairGroup);
+    }
+    
     const item = document.createElement('div');
     item.className = `outline-item ${turn.type}`;
     
@@ -718,7 +735,7 @@ function renderOutline(turns) {
       }
     });
     
-    outlineContent.appendChild(item);
+    currentPairGroup.appendChild(item);
   });
 }
 

@@ -1843,6 +1843,21 @@ if (notesInput) {
 }
 
 /**
+ * Scroll to the highlighted outline item
+ */
+function scrollToHighlighted() {
+  const highlightedItem = document.querySelector('.scroll-highlighted');
+  if (highlightedItem) {
+    // Use scrollIntoView with the nearest scrollable ancestor (the outline content)
+    highlightedItem.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center',
+      inline: 'nearest'
+    });
+  }
+}
+
+/**
  * Zoom functionality for chat content
  */
 let currentFontSize = 100; // percentage

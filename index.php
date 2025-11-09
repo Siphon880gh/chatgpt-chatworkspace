@@ -65,6 +65,7 @@
       <div class="zoom-controls">
         <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">🔍−</button>
         <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">🔍+</button>
+        <button class="zoom-btn" onclick="scrollToHighlighted()" title="Scroll to highlighted">⬇</button>
       </div>
     </div>
 

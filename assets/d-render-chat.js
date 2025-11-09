@@ -942,17 +942,98 @@ function showCommentEditor(turn, index) {
   const headingSection = document.createElement('div');
   headingSection.className = 'comment-section';
   
+  const headingLabelRow = document.createElement('div');
+  headingLabelRow.className = 'comment-label-row';
+  
   const headingLabel = document.createElement('label');
   headingLabel.className = 'comment-label';
   headingLabel.textContent = '📌 Heading Comment';
   headingLabel.title = 'Displayed above the role label';
+  
+  // Heading toolbar
+  const headingToolbar = document.createElement('div');
+  headingToolbar.className = 'comment-toolbar';
+  
+  // Icon dropdown button for heading
+  const headingIconDropdownContainer = document.createElement('div');
+  headingIconDropdownContainer.className = 'toolbar-dropdown-container';
+  
+  const headingIconDropdownBtn = document.createElement('button');
+  headingIconDropdownBtn.className = 'toolbar-btn toolbar-dropdown-btn';
+  headingIconDropdownBtn.innerHTML = '🏷️';
+  headingIconDropdownBtn.title = 'Insert icon at beginning';
+  headingIconDropdownBtn.type = 'button';
+  
+  const headingIconDropdownMenu = document.createElement('div');
+  headingIconDropdownMenu.className = 'toolbar-dropdown-menu';
+  
+  // Icon options for heading
+  const headingIconOptions = [
+    { icon: 'fi-rr-sparkles', title: 'Enrich data', color: '#a855f7', html: '<i class="fi fi-rr-sparkles" style="color: #a855f7;"></i> <b>Enrich data:</b> ' },
+    { icon: 'fi-rr-share-square', title: 'Pluck out', color: '#a855f7', html: '<i class="fi fi-rr-share-square" style="color: #a855f7;"></i> <b>Pluck out:</b> ' },
+    { icon: 'fi-rr-file-import', title: 'Pluck in', color: '#a855f7', html: '<i class="fi fi-rr-file-import" style="color: #a855f7;"></i> <b>Pluck in:</b> ' },
+    { icon: 'fa-circle-check', title: 'Check', color: '#16a34a', html: '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-heart', title: 'Heart', color: '#16a34a', html: '<i class="fa-solid fa-heart" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-bolt', title: 'Bolt', color: '#16a34a', html: '<i class="fa-solid fa-bolt" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-circle-arrow-right', title: 'Right Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-right" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-circle-arrow-left', title: 'Left Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-left" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-circle-question', title: 'Question', color: '#2563eb', html: '<i class="fa-solid fa-circle-question" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-circle-info', title: 'Info', color: '#2563eb', html: '<i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-asterisk', title: 'Asterisk', color: '#2563eb', html: '<i class="fa-solid fa-asterisk" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-star', title: 'Star', color: '#2563eb', html: '<i class="fa-solid fa-star" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-lightbulb', title: 'Idea', color: '#2563eb', html: '<i class="fa-solid fa-lightbulb" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-bookmark', title: 'Bookmark', color: '#2563eb', html: '<i class="fa-solid fa-bookmark" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-flag', title: 'Flag', color: '#2563eb', html: '<i class="fa-solid fa-flag" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-circle-xmark', title: 'Error', color: '#dc2626', html: '<i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-circle-exclamation', title: 'Exclamation', color: '#dc2626', html: '<i class="fa-solid fa-circle-exclamation" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-triangle-exclamation', title: 'Warning', color: '#dc2626', html: '<i class="fa-solid fa-triangle-exclamation" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-bell', title: 'Alert', color: '#dc2626', html: '<i class="fa-solid fa-bell" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-fire', title: 'Fire', color: '#dc2626', html: '<i class="fa-solid fa-fire" style="color: #dc2626;"></i> ' }
+  ];
   
   const headingTextarea = document.createElement('textarea');
   headingTextarea.className = 'comment-textarea comment-textarea-heading';
   headingTextarea.placeholder = 'Add heading comment (appears above role label)...';
   headingTextarea.value = headingValue;
   
-  headingSection.appendChild(headingLabel);
+  headingIconOptions.forEach(option => {
+    const iconBtn = document.createElement('button');
+    iconBtn.className = 'toolbar-dropdown-item';
+    // Handle both Font Awesome (fa-*) and Flaticon (fi-*) icons
+    const iconClass = option.icon.startsWith('fi-') ? `fi ${option.icon}` : `fa-solid ${option.icon}`;
+    iconBtn.innerHTML = `<i class="${iconClass}"${option.color ? ` style="color: ${option.color};"` : ''}></i>`;
+    iconBtn.title = option.title;
+    iconBtn.type = 'button';
+    iconBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Insert at the beginning of the textarea
+      const currentValue = headingTextarea.value;
+      headingTextarea.value = option.html + currentValue;
+      headingTextarea.focus();
+      // Close dropdown
+      headingIconDropdownMenu.classList.remove('show');
+    });
+    headingIconDropdownMenu.appendChild(iconBtn);
+  });
+  
+  headingIconDropdownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    headingIconDropdownMenu.classList.toggle('show');
+    // Close turn comment dropdown if open
+    if (iconDropdownMenu) {
+      iconDropdownMenu.classList.remove('show');
+    }
+  });
+  
+  headingIconDropdownContainer.appendChild(headingIconDropdownBtn);
+  headingIconDropdownContainer.appendChild(headingIconDropdownMenu);
+  
+  headingToolbar.appendChild(headingIconDropdownContainer);
+  
+  headingLabelRow.appendChild(headingLabel);
+  headingLabelRow.appendChild(headingToolbar);
+  
+  headingSection.appendChild(headingLabelRow);
   headingSection.appendChild(headingTextarea);
   
   // Turn comment section with toolbar
@@ -1056,6 +1137,10 @@ function showCommentEditor(turn, index) {
   iconDropdownBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     iconDropdownMenu.classList.toggle('show');
+    // Close heading dropdown if open
+    if (headingIconDropdownMenu) {
+      headingIconDropdownMenu.classList.remove('show');
+    }
   });
   
   iconDropdownContainer.appendChild(iconDropdownBtn);
@@ -1141,10 +1226,13 @@ function showCommentEditor(turn, index) {
     }
   });
   
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   document.addEventListener('click', (e) => {
     if (!iconDropdownContainer.contains(e.target)) {
       iconDropdownMenu.classList.remove('show');
+    }
+    if (!headingIconDropdownContainer.contains(e.target)) {
+      headingIconDropdownMenu.classList.remove('show');
     }
   });
 }

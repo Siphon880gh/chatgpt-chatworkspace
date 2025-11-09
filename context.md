@@ -14,6 +14,9 @@
 - Collapse/expand chat bubbles for better focus and space management
 - Copy chat turn text to clipboard with one click
 - Auto-highlight outline items based on scroll position
+- Auto-detect and render links from notes as clickable icons
+- Group user-assistant pairs in outline for better visual organization
+- Scroll to highlighted outline item with one click
 
 ---
 
@@ -67,7 +70,7 @@ ChatWorkspace_{chatId}_html      // Original chat HTML (for URL ?open= parameter
 
 ```
 /Users/wengffung/dev/web/xny/chat/
-├── index.php                  (~106 lines) - Main UI structure (HTML input, notes textarea, panels, icon CDN links)
+├── index.php                  (~106 lines) - Main UI structure (HTML input, notes textarea, detected links, panels, icon CDN links, clickable logo)
 ├── share.php                  (~104 lines) - Backend API for sharing conversations
 ├── README.md                  (~196 lines) - User-facing documentation
 ├── context.md                 (~920 lines) - Developer documentation (this file)
@@ -77,7 +80,7 @@ ChatWorkspace_{chatId}_html      // Original chat HTML (for URL ?open= parameter
     ├── a-load-chat.js         (2 lines) - Console snippet to extract ChatGPT HTML
     ├── b-store-turns.js       (32 lines) - Standalone turn collector (not used in main flow)
     ├── c-hash-chat.js         (~90 lines) - SHA-256 hashing utilities
-    ├── d-render-chat.js       (~1687 lines) - Core application logic
+    ├── d-render-chat.js       (~1860 lines) - Core application logic
     └── styles.css             (~1397 lines) - All styling (gradients, panels, modals, icon dropdown)
 ```
 
@@ -202,6 +205,12 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Respects preview highlighting (doesn't override `previewing` class)
 - Provides visual feedback of current reading position
 
+**`scrollToHighlighted()`**
+- Scrolls the outline panel to the currently highlighted outline item
+- Uses `scrollIntoView()` with smooth behavior and center alignment
+- Triggered by ⬇ button in zoom controls area
+- Helps users quickly navigate back to their current position in outline
+
 **`extractFormattedContent(rawHtml)`**
 - Primary rendering method for ChatGPT HTML exports
 - Looks for `.markdown` container (assistant messages with rich formatting)
@@ -236,11 +245,13 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 
 **`renderOutline(turns)`**
 - Creates `.outline-item` divs
+- Groups turns into user+assistant pairs using `.outline-pair-group` wrapper divs
+- Each pair group has visual separation (subtle background and border)
 - Loads saved summaries, comments, and indents from `localStorage`
 - Applies indentation styling (2 character width per level)
 - Renders two types of comments:
-  - **Heading Comment:** Above label, highlighted callout box
-  - **Turn Comment:** Below summary, italic, gray
+  - **Heading Comment:** Above label, highlighted callout box, with icon dropdown toolbar
+  - **Turn Comment:** Below summary, italic, gray, with HTML formatting toolbar
 - Adds hover icons (→ indent, ← unindent, 🗨️/💬 for comment, 👁 for preview)
 - Attaches click handlers for navigation
 
@@ -273,19 +284,21 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 **`showCommentEditor(turn, index)`**
 - Creates modal overlay
 - Shows two separate textareas:
-  - **Heading Comment:** Displayed above role label
+  - **Heading Comment:** Displayed above role label, has own icon dropdown toolbar
   - **Turn Comment:** Displayed below summary text with HTML toolbar
-- Toolbar buttons for inserting HTML snippets:
+- Both sections have **🏷️ Icon Dropdown** toolbar:
+  - Dropdown menu with 20 colored icons organized in 4x5 grid
+  - **Purple icons:** Data operations (sparkles, pluck out, pluck in) from Flaticon
+  - **Green icons:** Success/positive actions (check, heart, bolt, arrows) from Font Awesome
+  - **Blue icons:** Informational (question, info, asterisk, star, lightbulb, bookmark, flag)
+  - **Red icons:** Errors/warnings (xmark, exclamation, triangle-warning, bell, fire)
+  - Inserts colored icon HTML at beginning of comment
+  - Supports both Font Awesome (fa-*) and Flaticon (fi-*) icon classes
+  - Opening one dropdown closes the other to prevent overlap
+- Turn comment has additional toolbar buttons for inserting HTML snippets:
   - **▼ Collapsible:** Inserts `<details>/<summary>` structure
   - **⫿ Two Columns:** Inserts `.columns-2` grid layout
   - **≡ Three Columns:** Inserts `.columns-3` grid layout
-  - **🏷️ Icon Dropdown:** Dropdown menu with 20 colored icons organized in 4x5 grid
-    - **Purple icons:** Data operations (sparkles, pluck out, pluck in) from Flaticon
-    - **Green icons:** Success/positive actions (check, heart, bolt, arrows) from Font Awesome
-    - **Blue icons:** Informational (question, info, asterisk, star, lightbulb, bookmark, flag)
-    - **Red icons:** Errors/warnings (xmark, exclamation, triangle-warning, bell, fire)
-    - Inserts colored icon HTML at beginning of turn comment
-    - Supports both Font Awesome (fa-*) and Flaticon (fi-*) icon classes
 - Comments support HTML rendering (innerHTML) for rich formatting
 - `insertAtCursor()` helper inserts HTML snippets at cursor position
 - Save/Delete All buttons
@@ -352,6 +365,15 @@ localStorage.setItem(`ChatWorkspace_${currentChatId}`, JSON.stringify(userSettin
 - Labeled "📝 Notes (Optional)"
 - Placeholder suggests use cases (URL, goals, context)
 - Visible before and after loading chat
+
+**Link Detection Feature:**
+- `detectLinks(text)` - Parses text for HTTP(S) URLs using regex pattern
+- `updateDetectedLinks()` - Renders detected links below notes textarea
+- Links displayed as globe icons with domain name shown on hover
+- Auto-updates in real-time as user types in notes field
+- Links open in new tab with `rel="noopener noreferrer"` for security
+- Duplicate URLs are filtered out automatically
+- Animated hover effect expands to show full domain name
 
 #### **Section J: Share & Open System (lines 888-1359)**
 
@@ -457,23 +479,25 @@ Content-Type: application/json
 
 ### 6. Styling (`styles.css`)
 
-**Location:** ~1397 lines of comprehensive CSS  
+**Location:** ~1480 lines of comprehensive CSS  
 **Key Sections:**
 
 1. **Global Styles (top)** - Reset, body, header gradient
 2. **Input Section (early)** - Textarea, load button
-3. **Panel System (early-middle)** - `.panel`, `.panel-header`, `.panel-content`
-4. **Chat Turns (middle)** - Color-coded user/assistant, code blocks, markdown formatting
-5. **Collapsible Chat Bubbles (middle)** - Toggle button (sticky position), collapsed state, rotation animations
-6. **Copy Chat Turn Button (middle)** - Sticky positioned copy button, hover states, visual feedback
-7. **Markdown Styles (middle)** - Headers (h1-h6), lists (ul/ol/li), blockquotes, paragraphs, bold/italic
-8. **ChatGPT Data Attributes (middle)** - Spacing for `[data-start]`, `[data-is-last-node]` attributes
-9. **Outline Items (middle)** - Hover effects, editable summaries, icons, scroll-highlighting
-10. **Comment System (middle-late)** - Display styles, editor modal, HTML element support (columns, collapsible)
-11. **Comment Toolbar (middle-late)** - Toolbar buttons for inserting HTML snippets, icon dropdown grid (4x5)
-12. **Preview Panel (late)** - Fixed bottom, slide-up animation
-13. **Controls (late)** - Zoom buttons, resize handle, reset button
-14. **Responsive (end)** - Mobile breakpoints, stacked columns
+3. **Detected Links (early)** - Globe icons below notes, hover animations, domain name expansion
+4. **Panel System (early-middle)** - `.panel`, `.panel-header`, `.panel-content`
+5. **Chat Turns (middle)** - Color-coded user/assistant, code blocks, markdown formatting
+6. **Collapsible Chat Bubbles (middle)** - Toggle button (sticky position), collapsed state, rotation animations
+7. **Copy Chat Turn Button (middle)** - Sticky positioned copy button, hover states, visual feedback
+8. **Markdown Styles (middle)** - Headers (h1-h6), lists (ul/ol/li), blockquotes, paragraphs, bold/italic
+9. **ChatGPT Data Attributes (middle)** - Spacing for `[data-start]`, `[data-is-last-node]` attributes
+10. **Outline Items (middle)** - Hover effects, editable summaries, icons, scroll-highlighting
+11. **Outline Pair Groups (middle)** - Visual grouping of user+assistant pairs with subtle background and border
+12. **Comment System (middle-late)** - Display styles, editor modal, HTML element support (columns, collapsible)
+13. **Comment Toolbar (middle-late)** - Toolbar buttons for inserting HTML snippets, icon dropdown grid (4x5) for both heading and turn comments
+14. **Preview Panel (late)** - Fixed bottom, slide-up animation
+15. **Controls (late)** - Zoom buttons, resize handle, reset button, scroll to highlighted button
+16. **Responsive (end)** - Mobile breakpoints, stacked columns
 
 **Design System:**
 - Primary gradient: `#667eea → #764ba2`
@@ -523,16 +547,18 @@ Content-Type: application/json
 **Files:** `d-render-chat.js` (comment functions, middle-late), `styles.css` (comment display and toolbar styles), `index.php` (icon CDN links)
 **How:**
 - Modal editor with two separate input fields
-- **Heading Comment:** Always displayed above role label, highlighted
-- **Turn Comment:** Always displayed below summary text with HTML toolbar
-- Toolbar provides quick insertion of HTML elements:
+- **Heading Comment:** Always displayed above role label, highlighted, has own icon dropdown toolbar
+- **Turn Comment:** Always displayed below summary text with full HTML toolbar
+- Both sections have **Icon Dropdown (🏷️)** toolbar:
+  - Grid dropdown (4x5) with 20 colored semantic icons
+  - Icons organized by color: Purple (data ops), Green (positive), Blue (info), Red (warnings)
+  - Supports Font Awesome 6.5.1 and Flaticon Uicons 2.6.0
+  - Inserts icon HTML at beginning of comment for visual categorization
+  - Opening one dropdown closes the other to prevent overlap
+- Turn comment has additional toolbar buttons for HTML elements:
   - **Collapsible sections:** `<details>/<summary>` for expandable content
   - **Two-column layout:** `.columns-2` CSS grid
   - **Three-column layout:** `.columns-3` CSS grid
-  - **Icon Dropdown (🏷️):** Grid dropdown (4x5) with 20 colored semantic icons
-    - Icons organized by color: Purple (data ops), Green (positive), Blue (info), Red (warnings)
-    - Supports Font Awesome 6.5.1 and Flaticon Uicons 2.6.0
-    - Inserts icon HTML at beginning of turn comment for visual categorization
 - Comments render as HTML (innerHTML) instead of plain text
 - `insertAtCursor()` function inserts HTML snippets at cursor position
 - Both types can be used simultaneously or independently
@@ -582,6 +608,55 @@ Content-Type: application/json
 
 **Storage:** None (real-time UI state)
 
+### Feature: Scroll to Highlighted Outline Item
+
+**Files:** `d-render-chat.js` (scrollToHighlighted), `index.php` (scroll button), `styles.css` (zoom controls z-index)
+**How:**
+- Button (⬇) in zoom controls area triggers scroll action
+- `scrollToHighlighted()` finds currently highlighted outline item
+- Uses `scrollIntoView()` with smooth behavior and center alignment
+- Scrolls within the outline panel's scrollable container
+- Helps users quickly return to their reading position in outline
+- Z-index of controls increased to 9999 for proper layering
+
+**Storage:** None (UI action)
+
+### Feature: Outline Pair Grouping
+
+**Files:** `d-render-chat.js` (renderOutline), `styles.css` (outline-pair-group)
+**How:**
+- Groups outline items into user+assistant pairs automatically
+- Creates `.outline-pair-group` wrapper div when user message is encountered
+- Each pair group has visual separation:
+  - Subtle background: `rgba(102, 126, 234, 0.03)`
+  - Border: `1px solid rgba(102, 126, 234, 0.1)`
+  - Rounded corners and padding
+  - Bottom margin between groups
+- Handles edge case where conversation starts with assistant message
+- Improves visual organization of conversation flow
+
+**Storage:** None (visual rendering)
+
+### Feature: Link Detection in Notes
+
+**Files:** `d-render-chat.js` (detectLinks, updateDetectedLinks), `styles.css` (detected-links, link-icon), `index.php` (detectedLinks container)
+**How:**
+- `detectLinks()` parses notes text for HTTP(S) URLs using regex
+- `updateDetectedLinks()` renders links below notes textarea
+- Links displayed as compact globe icons (🌐)
+- Hover effect expands to show full domain name with smooth animation
+- Features:
+  - Auto-updates in real-time as user types
+  - Filters duplicate URLs
+  - Removes trailing punctuation from URLs
+  - Opens in new tab with `rel="noopener noreferrer"`
+  - Gradient background on hover with shadow effect
+  - Domain extracted from URL using URL API
+- Hidden when no links detected
+- Integrates with Font Awesome for globe icon
+
+**Storage:** None (derived from notes text in real-time)
+
 ### Feature: Message Preview
 
 **File:** `d-render-chat.js` (preview functions, late-middle)  
@@ -630,8 +705,20 @@ Content-Type: application/json
 - Stored as JSON: `{ notes: string, lastUpdated: ISO timestamp }`
 - Loaded automatically when chat is loaded
 - Use cases: Original chat URL, goals, project context, tags, etc.
+- Integrated with link detection feature (see "Link Detection in Notes")
 
 **Storage:** `ChatWorkspace_{chatId}_notes` with notes text and timestamp
+
+### Feature: Clickable Logo Reset
+
+**Files:** `index.php` (header section)
+**How:**
+- Logo wrapped in anchor tag linking to `./` (home directory)
+- Clicking logo reloads page and resets application state
+- Simple UX improvement for quick reset without manual refresh
+- No JavaScript needed, pure HTML navigation
+
+**Storage:** None (page navigation)
 
 ### Feature: Share & Open (URL Parameters)
 
@@ -788,8 +875,8 @@ php -S localhost:8000
 ## 📊 Performance Considerations
 
 **File Sizes:**
-- `d-render-chat.js`: ~1687 lines (~59KB) - Core application logic with chat rendering, outline, comments, preview, share, copy features
-- `styles.css`: ~1397 lines (~37KB) - All styles inline, no external dependencies
+- `d-render-chat.js`: ~1860 lines (~65KB) - Core application logic with chat rendering, outline, comments, preview, share, copy, link detection, scroll features
+- `styles.css`: ~1480 lines (~40KB) - All styles inline, no external dependencies
 - Icon libraries: Font Awesome 6.5.1 + Flaticon Uicons 2.6.0 (CDN, ~100KB combined)
 
 **LocalStorage Limits:**
@@ -874,11 +961,15 @@ See `README.md` for user-facing roadmap. Developer considerations:
 - Collapsible chat bubbles → `d-render-chat.js` (`toggleChatTurnCollapse`, middle)
 - Copy chat turn → `d-render-chat.js` (`copyChatTurnText`, line ~794)
 - Scroll tracking → `d-render-chat.js` (`setupScrollTracking`, `updateOutlineHighlight`, early-middle)
+- Scroll to highlighted → `d-render-chat.js` (`scrollToHighlighted`, line ~1845)
+- Outline pair grouping → `d-render-chat.js` (`renderOutline`, line ~553)
+- Link detection → `d-render-chat.js` (`detectLinks`, `updateDetectedLinks`, line ~1763)
 - Hashing implementation → `c-hash-chat.js` (`hashChat`, throughout)
 - Comment system → `d-render-chat.js` (comment functions, `showCommentEditor`, `insertAtCursor`, middle-late)
-- Icon dropdown → `d-render-chat.js` (`showCommentEditor`, icon options array, line ~1013)
+- Icon dropdown → `d-render-chat.js` (`showCommentEditor`, icon options arrays for both heading and turn, line ~975 and ~1085)
 - Preview panel → `d-render-chat.js` (`showMessagePreview`, late-middle)
-- Notes system → `d-render-chat.js` (`loadChatNotes`, `saveChatNotes`, late) + `index.php` (lines 26-33)
+- Notes system → `d-render-chat.js` (`loadChatNotes`, `saveChatNotes`, late) + `index.php` (lines 26-34)
+- Clickable logo reset → `index.php` (header section, line ~13)
 - Share/Open system → `d-render-chat.js` (`handleShareClick`, `showShareModal`, `handleUrlParameters`, lines 888-1359) + `share.php`
 - URL parameter handling → `d-render-chat.js` (`handleUrlParameters`, lines 1237-1359)
 - Styling rules → `styles.css` (organized by feature)
@@ -912,11 +1003,28 @@ item.addEventListener('click', (e) => {
 ---
 
 **Last Updated:** 2025-11-09  
-**File Version:** 1.5  
+**File Version:** 1.6  
 **Project Status:** Active Development  
-**Recent Updates:** 
-- **Copy Chat Turn Button:** Added copy button (📋) to each chat turn for quick text copying to clipboard with visual feedback (commit df94aa5)
-- **Icon Dropdown Toolbar:** Added icon dropdown (🏷️) to comment editor with 20 colored semantic icons organized in 4x5 grid (commits 1289ed4, 96386f1, 073fe27, 550ce27)
+**Recent Updates (Last 5 Commits):**
+- **Scroll to Highlighted:** Added button (⬇) to scroll outline panel to currently highlighted item (commit 97b3c62)
+  - Smooth scrolling with center alignment
+  - Z-index of controls increased to 9999 for proper layering
+- **Link Detection in Notes:** Auto-detects and renders URLs from notes as clickable icons (commit ad3eaf3)
+  - Globe icons with hover animation to show domain name
+  - Auto-updates in real-time as user types
+  - Opens in new tab with security attributes
+- **Outline Pair Grouping:** User+assistant messages grouped together in outline (commit f0aac8a)
+  - Visual separation with subtle background and border
+  - Improves conversation flow readability
+- **Clickable Logo Reset:** Logo now links to home/reset (commit d39d0f7)
+  - Simple UX improvement for quick page reset
+- **Heading Icon Toolbar:** Added icon dropdown to heading comment editor (commit 965edf0)
+  - Same 20 colored semantic icons as turn comments
+  - Both dropdowns close when other is opened to prevent overlap
+
+**Previous Updates:**
+- **Copy Chat Turn Button:** Added copy button (📋) to each chat turn for quick text copying to clipboard with visual feedback
+- **Icon Dropdown Toolbar:** Added icon dropdown (🏷️) to comment editor with 20 colored semantic icons organized in 4x5 grid
   - Purple icons: Data operations (Flaticon - sparkles, pluck out/in)
   - Green icons: Success/positive actions (Font Awesome - check, heart, bolt, arrows)
   - Blue icons: Informational (Font Awesome - question, info, star, lightbulb, bookmark, flag)

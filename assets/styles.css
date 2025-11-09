@@ -1057,7 +1057,6 @@ button:disabled {
   max-width: 600px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   border-radius: 12px;
-  overflow: hidden;
 }
 
 .comment-editor-header {
@@ -1159,6 +1158,57 @@ button:disabled {
   transform: scale(0.98);
 }
 
+/* Toolbar Dropdown */
+.toolbar-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.toolbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  padding: 0.5rem;
+  display: none;
+  gap: 0.5rem;
+  flex-direction: row;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  z-index: 1000;
+}
+
+.toolbar-dropdown-menu.show {
+  display: flex;
+}
+
+.toolbar-dropdown-item {
+  background: white;
+  border: 2px solid #667eea;
+  color: #667eea;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+}
+
+.toolbar-dropdown-item:hover {
+  background: #667eea;
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.toolbar-dropdown-item:active {
+  transform: scale(0.95);
+}
+
 .comment-textarea {
   width: 500px;
   max-width: 90vw;
@@ -1248,7 +1298,7 @@ button:disabled {
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
+  overflow:visible !important;
 }
 
 .share-modal-header {

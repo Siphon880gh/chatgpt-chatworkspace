@@ -958,9 +958,56 @@ function showCommentEditor(turn, index) {
   threeColBtn.type = 'button';
   threeColBtn.style.fontWeight = 'normal'
   
+  // Icon dropdown button
+  const iconDropdownContainer = document.createElement('div');
+  iconDropdownContainer.className = 'toolbar-dropdown-container';
+  
+  const iconDropdownBtn = document.createElement('button');
+  iconDropdownBtn.className = 'toolbar-btn toolbar-dropdown-btn';
+  iconDropdownBtn.innerHTML = '🏷️';
+  iconDropdownBtn.title = 'Insert icon at beginning';
+  iconDropdownBtn.type = 'button';
+  
+  const iconDropdownMenu = document.createElement('div');
+  iconDropdownMenu.className = 'toolbar-dropdown-menu';
+  
+  // Icon options
+  const iconOptions = [
+    { icon: 'fa-circle-exclamation', title: 'Exclamation', html: '<i class="fa-solid fa-circle-exclamation"></i> ' },
+    { icon: 'fa-circle-question', title: 'Question', html: '<i class="fa-solid fa-circle-question"></i> ' },
+    { icon: 'fa-asterisk', title: 'Asterisk', html: '<i class="fa-solid fa-asterisk"></i> ' }
+  ];
+  
+  iconOptions.forEach(option => {
+    const iconBtn = document.createElement('button');
+    iconBtn.className = 'toolbar-dropdown-item';
+    iconBtn.innerHTML = `<i class="fa-solid ${option.icon}"></i>`;
+    iconBtn.title = option.title;
+    iconBtn.type = 'button';
+    iconBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Insert at the beginning of the textarea
+      const currentValue = turnTextarea.value;
+      turnTextarea.value = option.html + currentValue;
+      turnTextarea.focus();
+      // Close dropdown
+      iconDropdownMenu.classList.remove('show');
+    });
+    iconDropdownMenu.appendChild(iconBtn);
+  });
+  
+  iconDropdownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    iconDropdownMenu.classList.toggle('show');
+  });
+  
+  iconDropdownContainer.appendChild(iconDropdownBtn);
+  iconDropdownContainer.appendChild(iconDropdownMenu);
+  
   toolbar.appendChild(collapsibleBtn);
   toolbar.appendChild(twoColBtn);
   toolbar.appendChild(threeColBtn);
+  toolbar.appendChild(iconDropdownContainer);
   
   turnLabelRow.appendChild(turnLabel);
   turnLabelRow.appendChild(toolbar);
@@ -1034,6 +1081,13 @@ function showCommentEditor(turn, index) {
   editor.addEventListener('click', (e) => {
     if (e.target === editor) {
       editor.remove();
+    }
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!iconDropdownContainer.contains(e.target)) {
+      iconDropdownMenu.classList.remove('show');
     }
   });
 }

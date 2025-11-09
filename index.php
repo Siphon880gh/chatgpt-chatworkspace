@@ -32,6 +32,7 @@
       class="notes-textarea"
       placeholder="Add notes about this chat...&#10;e.g., Original URL, goals, context, or any other relevant information"
     ></textarea>
+    <div id="detectedLinks" class="detected-links"></div>
   </div>
 
   <div class="main-container">

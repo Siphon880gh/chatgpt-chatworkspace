@@ -1385,6 +1385,11 @@ function loadChatNotes(chatId) {
     try {
       const notesData = JSON.parse(saved);
       notesInput.value = notesData.notes || '';
+      
+      // Update detected links after loading notes
+      if (typeof updateDetectedLinks === 'function') {
+        updateDetectedLinks();
+      }
     } catch (e) {
       console.warn('Failed to parse saved notes:', e);
     }
@@ -1755,6 +1760,70 @@ document.getElementById('htmlInput').addEventListener('keydown', (e) => {
   }
 });
 
+/**
+ * Detect links in text and return array of URLs
+ */
+function detectLinks(text) {
+  if (!text) return [];
+  
+  // URL regex pattern that matches http(s) URLs
+  const urlPattern = /(https?:\/\/[^\s]+)/gi;
+  const matches = text.match(urlPattern);
+  
+  if (!matches) return [];
+  
+  // Remove duplicates and clean URLs
+  return [...new Set(matches)].map(url => {
+    // Remove trailing punctuation that's not part of the URL
+    return url.replace(/[.,;:!?)]$/, '');
+  });
+}
+
+/**
+ * Update the detected links display
+ */
+function updateDetectedLinks() {
+  const notesInput = document.getElementById('notesInput');
+  const detectedLinksContainer = document.getElementById('detectedLinks');
+  
+  if (!notesInput || !detectedLinksContainer) return;
+  
+  const links = detectLinks(notesInput.value);
+  
+  // Clear existing links
+  detectedLinksContainer.innerHTML = '';
+  
+  if (links.length === 0) return;
+  
+  // Create link icons
+  links.forEach(url => {
+    const linkElement = document.createElement('a');
+    linkElement.href = url;
+    linkElement.target = '_blank';
+    linkElement.rel = 'noopener noreferrer';
+    linkElement.className = 'link-icon';
+    linkElement.title = url;
+    
+    // Add globe icon
+    const icon = document.createElement('i');
+    icon.className = 'fas fa-globe';
+    linkElement.appendChild(icon);
+    
+    // Add link text (domain)
+    const linkText = document.createElement('span');
+    linkText.className = 'link-text';
+    try {
+      const urlObj = new URL(url);
+      linkText.textContent = urlObj.hostname;
+    } catch (e) {
+      linkText.textContent = url;
+    }
+    linkElement.appendChild(linkText);
+    
+    detectedLinksContainer.appendChild(linkElement);
+  });
+}
+
 // Auto-save notes when typing (with debounce)
 let notesDebounceTimer;
 const notesInput = document.getElementById('notesInput');
@@ -1764,7 +1833,13 @@ if (notesInput) {
     notesDebounceTimer = setTimeout(() => {
       saveChatNotes();
     }, 500); // Save after 500ms of no typing
+    
+    // Update detected links immediately
+    updateDetectedLinks();
   });
+  
+  // Initial check for links on page load
+  updateDetectedLinks();
 }
 
 /**

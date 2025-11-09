@@ -971,6 +971,34 @@ function showCommentEditor(turn, index) {
   const headingToolbar = document.createElement('div');
   headingToolbar.className = 'comment-toolbar';
   
+  // Shared icon options for both heading and turn comments
+  const commentIconOptions = [
+    { icon: 'fi-rr-sparkles', title: 'Enrich data', color: '#a855f7', html: '<i class="fi fi-rr-sparkles" style="color: #a855f7;"></i> <b>Enrich data:</b> ' },
+    { icon: 'fi-rr-share-square', title: 'Pluck out', color: '#a855f7', html: '<i class="fi fi-rr-share-square" style="color: #a855f7;"></i> <b>Pluck out:</b> ' },
+    { icon: 'fi-rr-file-import', title: 'Pluck in', color: '#a855f7', html: '<i class="fi fi-rr-file-import" style="color: #a855f7;"></i> <b>Pluck in:</b> ' },
+    { icon: 'fa-code-branch', title: 'Split', color: '#a855f7', html: '<i class="fa-solid fa-code-branch" style="color: #a855f7;"></i> <b>Branch off:</b> ' },
+    { icon: 'fa-plus', title: 'Add', color: '#a855f7', html: '<i class="fa-solid fa-plus" style="color: #a855f7;"></i>  <b>Add:</b>' },
+    { icon: 'fa-minus', title: 'Remove', color: '#a855f7', html: '<i class="fa-solid fa-minus" style="color: #a855f7;"></i>  <b>Remove:</b>' },
+    { icon: 'fa-ellipsis', title: 'Need to expand on', color: '#a855f7', html: '<i class="fa-solid fa-ellipsis" style="color: #a855f7;"></i> <b>Expand on:</b>' },
+    { icon: 'fa-compress', title: 'Make more general/contract', color: '#a855f7', html: '<i class="fa-solid fa-compress" style="color: #a855f7;"></i> <b>Make less detailed:</b> ' },
+    { icon: 'fa-circle-check', title: 'Check', color: '#16a34a', html: '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-bolt', title: 'Bolt', color: '#16a34a', html: '<i class="fa-solid fa-bolt" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-circle-arrow-right', title: 'Right Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-right" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-circle-arrow-left', title: 'Left Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-left" style="color: #16a34a;"></i> ' },
+    { icon: 'fa-circle-question', title: 'Question', color: '#2563eb', html: '<i class="fa-solid fa-circle-question" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-circle-info', title: 'Info', color: '#2563eb', html: '<i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-star', title: 'Star', color: '#2563eb', html: '<i class="fa-solid fa-star" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-heart', title: 'Heart', color: '#2563eb', html: '<i class="fa-solid fa-heart" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-lightbulb', title: 'Idea', color: '#2563eb', html: '<i class="fa-solid fa-lightbulb" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-bookmark', title: 'Bookmark', color: '#2563eb', html: '<i class="fa-solid fa-bookmark" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-flag', title: 'Flag', color: '#2563eb', html: '<i class="fa-solid fa-flag" style="color: #2563eb;"></i> ' },
+    { icon: 'fa-circle-xmark', title: 'Error', color: '#dc2626', html: '<i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-circle-exclamation', title: 'Exclamation', color: '#dc2626', html: '<i class="fa-solid fa-circle-exclamation" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-triangle-exclamation', title: 'Warning', color: '#dc2626', html: '<i class="fa-solid fa-triangle-exclamation" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-bell', title: 'Alert', color: '#dc2626', html: '<i class="fa-solid fa-bell" style="color: #dc2626;"></i> ' },
+    { icon: 'fa-fire', title: 'Fire', color: '#dc2626', html: '<i class="fa-solid fa-fire" style="color: #dc2626;"></i> ' }
+  ];
+  
   // Icon dropdown button for heading
   const headingIconDropdownContainer = document.createElement('div');
   headingIconDropdownContainer.className = 'toolbar-dropdown-container';
@@ -984,36 +1012,12 @@ function showCommentEditor(turn, index) {
   const headingIconDropdownMenu = document.createElement('div');
   headingIconDropdownMenu.className = 'toolbar-dropdown-menu';
   
-  // Icon options for heading
-  const headingIconOptions = [
-    { icon: 'fi-rr-sparkles', title: 'Enrich data', color: '#a855f7', html: '<i class="fi fi-rr-sparkles" style="color: #a855f7;"></i> <b>Enrich data:</b> ' },
-    { icon: 'fi-rr-share-square', title: 'Pluck out', color: '#a855f7', html: '<i class="fi fi-rr-share-square" style="color: #a855f7;"></i> <b>Pluck out:</b> ' },
-    { icon: 'fi-rr-file-import', title: 'Pluck in', color: '#a855f7', html: '<i class="fi fi-rr-file-import" style="color: #a855f7;"></i> <b>Pluck in:</b> ' },
-    { icon: 'fa-circle-check', title: 'Check', color: '#16a34a', html: '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-heart', title: 'Heart', color: '#16a34a', html: '<i class="fa-solid fa-heart" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-bolt', title: 'Bolt', color: '#16a34a', html: '<i class="fa-solid fa-bolt" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-circle-arrow-right', title: 'Right Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-right" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-circle-arrow-left', title: 'Left Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-left" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-circle-question', title: 'Question', color: '#2563eb', html: '<i class="fa-solid fa-circle-question" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-circle-info', title: 'Info', color: '#2563eb', html: '<i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-asterisk', title: 'Asterisk', color: '#2563eb', html: '<i class="fa-solid fa-asterisk" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-star', title: 'Star', color: '#2563eb', html: '<i class="fa-solid fa-star" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-lightbulb', title: 'Idea', color: '#2563eb', html: '<i class="fa-solid fa-lightbulb" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-bookmark', title: 'Bookmark', color: '#2563eb', html: '<i class="fa-solid fa-bookmark" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-flag', title: 'Flag', color: '#2563eb', html: '<i class="fa-solid fa-flag" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-circle-xmark', title: 'Error', color: '#dc2626', html: '<i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> ' },
-    { icon: 'fa-circle-exclamation', title: 'Exclamation', color: '#dc2626', html: '<i class="fa-solid fa-circle-exclamation" style="color: #dc2626;"></i> ' },
-    { icon: 'fa-triangle-exclamation', title: 'Warning', color: '#dc2626', html: '<i class="fa-solid fa-triangle-exclamation" style="color: #dc2626;"></i> ' },
-    { icon: 'fa-bell', title: 'Alert', color: '#dc2626', html: '<i class="fa-solid fa-bell" style="color: #dc2626;"></i> ' },
-    { icon: 'fa-fire', title: 'Fire', color: '#dc2626', html: '<i class="fa-solid fa-fire" style="color: #dc2626;"></i> ' }
-  ];
-  
   const headingTextarea = document.createElement('textarea');
   headingTextarea.className = 'comment-textarea comment-textarea-heading';
   headingTextarea.placeholder = 'Add heading comment (appears above role label)...';
   headingTextarea.value = headingValue;
   
-  headingIconOptions.forEach(option => {
+  commentIconOptions.forEach(option => {
     const iconBtn = document.createElement('button');
     iconBtn.className = 'toolbar-dropdown-item';
     // Handle both Font Awesome (fa-*) and Flaticon (fi-*) icons
@@ -1107,31 +1111,7 @@ function showCommentEditor(turn, index) {
   const iconDropdownMenu = document.createElement('div');
   iconDropdownMenu.className = 'toolbar-dropdown-menu';
   
-  // Icon options
-  const iconOptions = [
-    { icon: 'fi-rr-sparkles', title: 'Enrich data', color: '#a855f7', html: '<i class="fi fi-rr-sparkles" style="color: #a855f7;"></i> <b>Enrich data:</b> ' },
-    { icon: 'fi-rr-share-square', title: 'Pluck out', color: '#a855f7', html: '<i class="fi fi-rr-share-square" style="color: #a855f7;"></i> <b>Pluck out:</b> ' },
-    { icon: 'fi-rr-file-import', title: 'Pluck in', color: '#a855f7', html: '<i class="fi fi-rr-file-import" style="color: #a855f7;"></i> <b>Pluck in:</b> ' },
-    { icon: 'fa-circle-check', title: 'Check', color: '#16a34a', html: '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-heart', title: 'Heart', color: '#16a34a', html: '<i class="fa-solid fa-heart" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-bolt', title: 'Bolt', color: '#16a34a', html: '<i class="fa-solid fa-bolt" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-circle-arrow-right', title: 'Right Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-right" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-circle-arrow-left', title: 'Left Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-left" style="color: #16a34a;"></i> ' },
-    { icon: 'fa-circle-question', title: 'Question', color: '#2563eb', html: '<i class="fa-solid fa-circle-question" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-circle-info', title: 'Info', color: '#2563eb', html: '<i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-asterisk', title: 'Asterisk', color: '#2563eb', html: '<i class="fa-solid fa-asterisk" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-star', title: 'Star', color: '#2563eb', html: '<i class="fa-solid fa-star" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-lightbulb', title: 'Idea', color: '#2563eb', html: '<i class="fa-solid fa-lightbulb" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-bookmark', title: 'Bookmark', color: '#2563eb', html: '<i class="fa-solid fa-bookmark" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-flag', title: 'Flag', color: '#2563eb', html: '<i class="fa-solid fa-flag" style="color: #2563eb;"></i> ' },
-    { icon: 'fa-circle-xmark', title: 'Error', color: '#dc2626', html: '<i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> ' },
-    { icon: 'fa-circle-exclamation', title: 'Exclamation', color: '#dc2626', html: '<i class="fa-solid fa-circle-exclamation" style="color: #dc2626;"></i> ' },
-    { icon: 'fa-triangle-exclamation', title: 'Warning', color: '#dc2626', html: '<i class="fa-solid fa-triangle-exclamation" style="color: #dc2626;"></i> ' },
-    { icon: 'fa-bell', title: 'Alert', color: '#dc2626', html: '<i class="fa-solid fa-bell" style="color: #dc2626;"></i> ' },
-    { icon: 'fa-fire', title: 'Fire', color: '#dc2626', html: '<i class="fa-solid fa-fire" style="color: #dc2626;"></i> ' }
-  ];
-  
-  iconOptions.forEach(option => {
+  commentIconOptions.forEach(option => {
     const iconBtn = document.createElement('button');
     iconBtn.className = 'toolbar-dropdown-item';
     // Handle both Font Awesome (fa-*) and Flaticon (fi-*) icons

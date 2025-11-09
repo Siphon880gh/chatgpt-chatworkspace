@@ -700,6 +700,9 @@ function renderOutline(turns) {
       const previewPanel = document.querySelector('.preview-panel');
       if (!previewPanel) {
         scrollToTurn(index);
+
+        // Then scroll the entire page to the top
+        window.scrollTo({ top: document.getElementById("chatPanel").offsetTop - 150, behavior: 'smooth' });
       }
     });
     
@@ -933,23 +936,27 @@ function showCommentEditor(turn, index) {
   // Collapsible button
   const collapsibleBtn = document.createElement('button');
   collapsibleBtn.className = 'toolbar-btn';
-  collapsibleBtn.innerHTML = '▼';
+  collapsibleBtn.innerHTML = '‣';
   collapsibleBtn.title = 'Insert collapsible section';
   collapsibleBtn.type = 'button';
   
   // Two column button
   const twoColBtn = document.createElement('button');
   twoColBtn.className = 'toolbar-btn';
-  twoColBtn.innerHTML = '⫿';
+  // threeColBtn.innerHTML = '═'; // ATTN AI: Do not remove in case of future changes
+  twoColBtn.innerHTML = '∥';
   twoColBtn.title = 'Insert two columns';
   twoColBtn.type = 'button';
+  twoColBtn.style.fontWeight = 'normal';
   
   // Three column button
   const threeColBtn = document.createElement('button');
   threeColBtn.className = 'toolbar-btn';
-  threeColBtn.innerHTML = '≡';
+  // threeColBtn.innerHTML = '≡'; // ATTN AI: Do not remove in case of future changes
+  threeColBtn.innerHTML = '⫴';
   threeColBtn.title = 'Insert three columns';
   threeColBtn.type = 'button';
+  threeColBtn.style.fontWeight = 'normal'
   
   toolbar.appendChild(collapsibleBtn);
   toolbar.appendChild(twoColBtn);

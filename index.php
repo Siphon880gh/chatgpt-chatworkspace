@@ -73,7 +73,7 @@
 
     <div id="outlinePanel" class="panel">
       <div class="panel-header">
-        <span>📋 Turn Outline</span>
+        <span>🗒️ Turn Outline</span>
         <button class="print-outline-btn" onclick="printOutline()" title="Print Outline">🖨️ Print</button>
       </div>
       <div id="outlineContent" class="panel-content">

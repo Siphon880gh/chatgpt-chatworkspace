@@ -4,6 +4,8 @@ let scrollObserver = null; // For tracking which turn is in view
 let hoverPreviewTimeout = null; // For hover preview delay
 let typingInterval = null; // For typing animation
 let appConfig = null; // Application configuration
+let turnPositionIndicator = null; // For turn position indicator toast
+let turnPositionTimeout = null; // For turn position indicator delay
 
 /**
  * Load application configuration from config.json
@@ -214,6 +216,15 @@ function renderChat(turns) {
     turnDiv.appendChild(scrollToOutlineBtn);
     turnDiv.appendChild(label);
     turnDiv.appendChild(content);
+    
+    // Add hover event for turn position indicator
+    turnDiv.addEventListener('mouseenter', () => {
+      showTurnPositionIndicator(index, turn.type, 'chat');
+    });
+    turnDiv.addEventListener('mouseleave', () => {
+      hideTurnPositionIndicator();
+    });
+    
     chatContent.appendChild(turnDiv);
   });
   
@@ -797,6 +808,14 @@ function renderOutline(turns) {
       }
     });
     
+    // Add hover event for turn position indicator
+    item.addEventListener('mouseenter', () => {
+      showTurnPositionIndicator(index, turn.type, 'outline');
+    });
+    item.addEventListener('mouseleave', () => {
+      hideTurnPositionIndicator();
+    });
+    
     currentPairGroup.appendChild(item);
   });
 }
@@ -933,6 +952,64 @@ function clearHoverPreview() {
   const existingPreview = document.querySelector('.outline-hover-preview');
   if (existingPreview) {
     existingPreview.remove();
+  }
+}
+
+/**
+ * Create or get the turn position indicator element
+ */
+function getTurnPositionIndicator() {
+  if (!turnPositionIndicator) {
+    turnPositionIndicator = document.createElement('div');
+    turnPositionIndicator.className = 'turn-position-indicator';
+    document.body.appendChild(turnPositionIndicator);
+  }
+  return turnPositionIndicator;
+}
+
+/**
+ * Show the turn position indicator
+ * @param {number} index - Turn index (0-based)
+ * @param {string} type - Turn type ('user' or 'assistant')
+ * @param {string} source - Source of hover ('chat' or 'outline')
+ */
+function showTurnPositionIndicator(index, type, source) {
+  // Clear any existing timeout
+  if (turnPositionTimeout) {
+    clearTimeout(turnPositionTimeout);
+    turnPositionTimeout = null;
+  }
+  
+  const indicator = getTurnPositionIndicator();
+  const turnNumber = index + 1; // Convert to 1-based numbering
+  const roleLabel = type === 'user' ? 'User' : 'Assistant';
+  const sourceIcon = source === 'chat' ? '💬' : '🗒️';
+  
+  indicator.innerHTML = `
+    <span class="turn-source-icon">${sourceIcon}</span>
+    <span class="turn-number">#${turnNumber}</span>
+    <span class="turn-separator">·</span>
+    <span class="turn-role">${roleLabel}</span>
+  `;
+  
+  // Small delay before showing to avoid flicker on quick mouse movements
+  turnPositionTimeout = setTimeout(() => {
+    indicator.classList.add('visible');
+  }, 100);
+}
+
+/**
+ * Hide the turn position indicator
+ */
+function hideTurnPositionIndicator() {
+  // Clear any pending show timeout
+  if (turnPositionTimeout) {
+    clearTimeout(turnPositionTimeout);
+    turnPositionTimeout = null;
+  }
+  
+  if (turnPositionIndicator) {
+    turnPositionIndicator.classList.remove('visible');
   }
 }
 

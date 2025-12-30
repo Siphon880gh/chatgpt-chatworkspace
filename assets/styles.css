@@ -1836,6 +1836,55 @@ button:disabled {
   }
 }
 
+/* Turn Position Indicator Toast */
+.turn-position-indicator {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: rgba(102, 126, 234, 0.85);
+  color: white;
+  padding: 0.5rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.turn-position-indicator.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.turn-position-indicator .turn-source-icon {
+  font-size: 0.9rem;
+  margin-right: 0.15rem;
+}
+
+.turn-position-indicator .turn-number {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.turn-position-indicator .turn-role {
+  opacity: 0.9;
+  text-transform: capitalize;
+}
+
+.turn-position-indicator .turn-separator {
+  opacity: 0.5;
+  margin: 0 0.15rem;
+}
+
 @media (max-width: 768px) {
   .input-section {
     flex-direction: column;
@@ -1877,6 +1926,13 @@ button:disabled {
   
   .outline-hover-preview {
     max-width: calc(100vw - 2rem);
+  }
+  
+  .turn-position-indicator {
+    bottom: 1rem;
+    right: 1rem;
+    font-size: 0.7rem;
+    padding: 0.4rem 0.7rem;
   }
 }
 

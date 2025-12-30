@@ -82,8 +82,8 @@ ChatWorkspace_{chatId}_html      // Original chat HTML (for URL ?open= parameter
     ├── a-load-chat.js         (2 lines) - Console snippet to extract ChatGPT HTML
     ├── b-store-turns.js       (32 lines) - Standalone turn collector (not used in main flow)
     ├── c-hash-chat.js         (~90 lines) - SHA-256 hashing utilities
-    ├── d-render-chat.js       (~2525 lines) - Core application logic (config loading, hover preview, print functionality)
-    └── styles.css             (~1824 lines) - All styling (gradients, panels, modals, icon dropdown, print button, hover preview)
+    ├── d-render-chat.js       (~2640 lines) - Core application logic (config loading, hover preview, print functionality, turn position indicator)
+    └── styles.css             (~1920 lines) - All styling (gradients, panels, modals, icon dropdown, print button, hover preview, turn position indicator)
 ```
 
 ---
@@ -563,7 +563,8 @@ Content-Type: application/json
 15. **Preview Panel (late)** - Fixed bottom, slide-up animation
 16. **Controls (late)** - Zoom buttons, resize handle, reset button, scroll to highlighted button
 17. **Hover Preview Tooltip (late)** - Glassmorphic popup, typing animation, blinking cursor, smart positioning, dynamic CSS variables
-18. **Responsive (end)** - Mobile breakpoints, stacked columns, hover preview width adjustment
+18. **Turn Position Indicator (late)** - Fixed bottom-right toast, fade-in animation, semi-transparent purple pill badge
+19. **Responsive (end)** - Mobile breakpoints, stacked columns, hover preview width adjustment, turn position indicator sizing
 
 **Design System:**
 - Primary gradient: `#667eea → #764ba2`
@@ -787,6 +788,21 @@ Content-Type: application/json
 
 **Storage:** None (generates print view from current state)
 
+### Feature: Turn Position Indicator
+
+**Files:** `d-render-chat.js` (turn position indicator functions, middle), `styles.css` (turn position indicator styles, late)
+**How:**
+- Subtle toast notification at bottom right of screen
+- Shows when hovering over a turn in Chat View or Outline
+- Displays source icon (💬 for Chat View, 🗒️ for Outline), 1-based turn number (e.g., "#1"), and role (User/Assistant)
+- Format: `💬 #1 · User` or `🗒️ #3 · Assistant`
+- 100ms delay before showing to prevent flicker on quick mouse movements
+- Fade-in/out animation with transform for smooth appearance
+- Non-obstructive design with semi-transparent background and blur effect
+- Pointer-events: none to avoid interfering with other interactions
+
+**Storage:** None (ephemeral UI feedback)
+
 ### Feature: Message Preview
 
 **File:** `d-render-chat.js` (preview functions, late-middle)  
@@ -933,6 +949,8 @@ let isResizing = false;          // Resize drag state
 let hoverPreviewTimeout = null;  // Hover preview delay timer
 let typingInterval = null;       // Typing animation interval
 let appConfig = null;            // Application configuration from config.json
+let turnPositionIndicator = null; // Turn position indicator toast element
+let turnPositionTimeout = null;   // Turn position indicator delay timer
 ```
 
 **LocalStorage Schema:**
@@ -1012,8 +1030,8 @@ php -S localhost:8000
 ## 📊 Performance Considerations
 
 **File Sizes:**
-- `d-render-chat.js`: ~2310 lines (~80KB) - Core application logic with chat rendering, outline, comments, preview, share, copy, link detection, scroll features, print functionality
-- `styles.css`: ~1760 lines (~48KB) - All styles inline, no external dependencies
+- `d-render-chat.js`: ~2640 lines (~90KB) - Core application logic with chat rendering, outline, comments, preview, share, copy, link detection, scroll features, print functionality, turn position indicator
+- `styles.css`: ~1920 lines (~52KB) - All styles inline, no external dependencies
 - Icon libraries: Font Awesome 6.5.1 + Flaticon Uicons 2.6.0 (CDN, ~100KB combined)
 
 **LocalStorage Limits:**
@@ -1103,6 +1121,7 @@ See `README.md` for user-facing roadmap. Developer considerations:
 - Scroll to highlighted → `d-render-chat.js` (`scrollToHighlighted`, middle-late)
 - Outline pair grouping → `d-render-chat.js` (`renderOutline`, middle)
 - Hover preview → `d-render-chat.js` (`setupHoverPreview`, `positionPreview`, `clearHoverPreview`, middle)
+- Turn position indicator → `d-render-chat.js` (`showTurnPositionIndicator`, `hideTurnPositionIndicator`, `getTurnPositionIndicator`, middle)
 - Link detection → `d-render-chat.js` (`detectLinks`, `updateDetectedLinks`, late)
 - Print outline → `d-render-chat.js` (`printOutline`, late)
 - Hashing implementation → `c-hash-chat.js` (`hashChat`, throughout)
@@ -1148,6 +1167,12 @@ item.addEventListener('click', (e) => {
 **File Version:** 2.0  
 **Project Status:** Active Development  
 **Recent Updates (Last 5 Commits):**
+- **Turn Position Indicator:** Added subtle toast notification at bottom right when hovering over turns
+  - Shows source icon (💬 Chat View, 🗒️ Outline), turn number (1-based), and role (User/Assistant)
+  - Format: `💬 #1 · User` or `🗒️ #3 · Assistant`
+  - Appears in both Chat View and Outline panels
+  - Non-obstructive design with semi-transparent background and smooth fade animation
+  - 100ms delay prevents flicker on quick mouse movements
 - **Outline Label Up Arrow:** Added animated up arrow (⬆) that appears on hover over USER/ASSISTANT labels in the outline
   - Arrow animates in from left with opacity transition when hovering over label
   - Uses same Unicode icon family (⬆) as the down arrow (⬇) in Chat View

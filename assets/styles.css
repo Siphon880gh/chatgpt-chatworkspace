@@ -876,12 +876,28 @@ button:disabled {
   text-transform: uppercase;
   margin-bottom: 0.25rem;
   opacity: 0.6;
-  cursor: help;
+  cursor: pointer;
   transition: opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .outline-label:hover {
   opacity: 0.9;
+}
+
+.outline-label-arrow {
+  opacity: 0;
+  transform: translateX(-5px);
+  transition: all 0.2s ease;
+  font-size: 0.7rem;
+  color: #667eea;
+}
+
+.outline-label:hover .outline-label-arrow {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .outline-summary {

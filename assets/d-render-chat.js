@@ -626,7 +626,19 @@ function renderOutline(turns) {
 
     const label = document.createElement('div');
     label.className = 'outline-label';
-    label.textContent = turn.type === 'user' ? 'User' : 'Assistant';
+    
+    // Create text span and up arrow icon for hover effect
+    const labelText = document.createElement('span');
+    labelText.className = 'outline-label-text';
+    labelText.textContent = turn.type === 'user' ? 'User' : 'Assistant';
+    
+    const upArrow = document.createElement('span');
+    upArrow.className = 'outline-label-arrow';
+    upArrow.textContent = '⬆';
+    upArrow.title = 'Jump to chat message';
+    
+    label.appendChild(labelText);
+    label.appendChild(upArrow);
     
     // Add hover preview to label only
     setupHoverPreview(label, turn, index);

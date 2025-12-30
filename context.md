@@ -301,6 +301,7 @@ root.style.setProperty('--hover-preview-max-width', `${appConfig.hoverPreview.ma
 - Adds hover icons (→ indent, ← unindent, 🗨️/💬 for comment, 👁 for preview)
 - Attaches click handlers for navigation
 - Sets up hover preview on role labels (User/Assistant text)
+- Adds animated up arrow (⬆) on role label hover to indicate click-to-jump feature
 
 **Editable Summaries:**
 - `contentEditable="true"` on `.outline-summary`
@@ -555,7 +556,7 @@ Content-Type: application/json
 8. **Scroll to Outline Button (middle)** - Sticky positioned scroll button, hover states, positioned below copy button
 9. **Markdown Styles (middle)** - Headers (h1-h6), lists (ul/ol/li), blockquotes, paragraphs, bold/italic
 10. **ChatGPT Data Attributes (middle)** - Spacing for `[data-start]`, `[data-is-last-node]` attributes
-11. **Outline Items (middle)** - Hover effects, editable summaries, icons, scroll-highlighting, role label cursor change
+11. **Outline Items (middle)** - Hover effects, editable summaries, icons, scroll-highlighting, role label animated up arrow
 12. **Outline Pair Groups (middle)** - Visual grouping of user+assistant pairs with subtle background and border
 13. **Comment System (middle-late)** - Display styles, editor modal, HTML element support (columns, collapsible)
 14. **Comment Toolbar (middle-late)** - Toolbar buttons for inserting HTML snippets, icon dropdown grid (4x5) for both heading and turn comments
@@ -1144,9 +1145,14 @@ item.addEventListener('click', (e) => {
 ---
 
 **Last Updated:** 2025-12-29  
-**File Version:** 1.9  
+**File Version:** 2.0  
 **Project Status:** Active Development  
 **Recent Updates (Last 5 Commits):**
+- **Outline Label Up Arrow:** Added animated up arrow (⬆) that appears on hover over USER/ASSISTANT labels in the outline
+  - Arrow animates in from left with opacity transition when hovering over label
+  - Uses same Unicode icon family (⬆) as the down arrow (⬇) in Chat View
+  - Provides visual hint that clicking the label jumps to the corresponding chat message
+  - Purple color (#667eea) matches the app's design system
 - **Scroll to Outline Button:** Added third button (⬇) to each chat turn that scrolls to the corresponding outline item
   - Positioned below copy button using sticky positioning
   - Smooth scroll animation with temporary highlight effect on target outline item

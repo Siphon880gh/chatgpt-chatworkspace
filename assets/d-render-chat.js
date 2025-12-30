@@ -1554,9 +1554,13 @@ function showCommentEditor(turn, index) {
   };
   document.addEventListener('keydown', escapeHandler);
   
-  // Close on backdrop click
+  // Close on backdrop click (but not when selecting text inside modal)
+  let editorMouseDownTarget = null;
+  editor.addEventListener('mousedown', (e) => {
+    editorMouseDownTarget = e.target;
+  });
   editor.addEventListener('click', (e) => {
-    if (e.target === editor) {
+    if (e.target === editor && editorMouseDownTarget === editor) {
       editor.remove();
     }
   });
@@ -2069,9 +2073,13 @@ function showShareModal() {
   };
   document.addEventListener('keydown', escapeHandler);
   
-  // Close on backdrop click
+  // Close on backdrop click (but not when selecting text inside modal)
+  let modalMouseDownTarget = null;
+  modal.addEventListener('mousedown', (e) => {
+    modalMouseDownTarget = e.target;
+  });
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
+    if (e.target === modal && modalMouseDownTarget === modal) {
       modal.remove();
     }
   });

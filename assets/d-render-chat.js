@@ -1251,7 +1251,7 @@ function showCommentEditor(turn, index) {
     { icon: 'fa-code-branch', title: 'Split', color: '#a855f7', html: '<i class="fa-solid fa-code-branch" style="color: #a855f7;"></i> <b>Branch off:</b> ' },
     { icon: 'fa-code-merge', title: 'Merge from/to', color: '#a855f7', html: '<i class="fa-solid fa-code-merge" style="color: #a855f7;"></i> <b>Merge from/to:</b> ' },{ icon: 'fa-code', title: 'Structure output', color: '#a855f7', html: '<i class="fa-solid fa-code" style="color: #a855f7;"></i> <b>Structure output:</b> ' },
     { icon: 'fa-ellipsis', title: 'Need to expand on', color: '#a855f7', html: '<i class="fa-solid fa-ellipsis" style="color: #a855f7;"></i> <b>Expand on:</b>' },
-    { icon: 'fa-compress', title: 'Make more general/contract', color: '#a855f7', html: '<i class="fa-solid fa-compress" style="color: #a855f7;"></i> <b>Make less detailed:</b> ' },
+    { icon: 'fa-compress', title: 'Make more contracted/general', color: '#a855f7', html: '<i class="fa-solid fa-compress" style="color: #a855f7;"></i> <b>Make less/more detailed:</b> ' },
     { icon: 'fa-circle-check', title: 'Check', color: '#16a34a', html: '<i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> ' },
     { icon: 'fa-bolt', title: 'Bolt', color: '#16a34a', html: '<i class="fa-solid fa-bolt" style="color: #16a34a;"></i> ' },
     { icon: 'fa-circle-arrow-right', title: 'Right Arrow', color: '#16a34a', html: '<i class="fa-solid fa-circle-arrow-right" style="color: #16a34a;"></i> ' },
@@ -1272,6 +1272,9 @@ function showCommentEditor(turn, index) {
     // { icon: 'fa-minus', title: 'Remove', color: '#a855f7', html: '<i class="fa-solid fa-minus" style="color: #a855f7;"></i>  <b>Remove:</b>' },
   ];
   
+  // Check if labels should be shown (from localStorage)
+  const showIconLabels = localStorage.getItem('ChatWorkspace_showIconLabels') === 'true';
+  
   // Icon dropdown button for heading
   const headingIconDropdownContainer = document.createElement('div');
   headingIconDropdownContainer.className = 'toolbar-dropdown-container';
@@ -1283,7 +1286,23 @@ function showCommentEditor(turn, index) {
   headingIconDropdownBtn.type = 'button';
   
   const headingIconDropdownMenu = document.createElement('div');
-  headingIconDropdownMenu.className = 'toolbar-dropdown-menu';
+  headingIconDropdownMenu.className = 'toolbar-dropdown-menu' + (showIconLabels ? ' show-labels' : '');
+  
+  // Add toggle row inside heading dropdown
+  const headingToggleRow = document.createElement('div');
+  headingToggleRow.className = 'toolbar-dropdown-toggle-row';
+  
+  const headingToggleLabel = document.createElement('span');
+  headingToggleLabel.textContent = 'Icon labels';
+  
+  const headingLabelsToggle = document.createElement('button');
+  headingLabelsToggle.className = 'toolbar-labels-toggle' + (showIconLabels ? ' active' : '');
+  headingLabelsToggle.textContent = showIconLabels ? 'Hide' : 'Show';
+  headingLabelsToggle.type = 'button';
+  
+  headingToggleRow.appendChild(headingToggleLabel);
+  headingToggleRow.appendChild(headingLabelsToggle);
+  headingIconDropdownMenu.appendChild(headingToggleRow);
   
   const headingTextarea = document.createElement('textarea');
   headingTextarea.className = 'comment-textarea comment-textarea-heading';
@@ -1295,7 +1314,7 @@ function showCommentEditor(turn, index) {
     iconBtn.className = 'toolbar-dropdown-item';
     // Handle both Font Awesome (fa-*) and Flaticon (fi-*) icons
     const iconClass = option.icon.startsWith('fi-') ? `fi ${option.icon}` : `fa-solid ${option.icon}`;
-    iconBtn.innerHTML = `<i class="${iconClass}"${option.color ? ` style="color: ${option.color};"` : ''}></i>`;
+    iconBtn.innerHTML = `<i class="${iconClass}"${option.color ? ` style="color: ${option.color};"` : ''}></i><span class="toolbar-dropdown-item-label">${option.title}</span>`;
     iconBtn.title = option.title;
     iconBtn.type = 'button';
     iconBtn.addEventListener('click', (e) => {
@@ -1382,14 +1401,30 @@ function showCommentEditor(turn, index) {
   iconDropdownBtn.type = 'button';
   
   const iconDropdownMenu = document.createElement('div');
-  iconDropdownMenu.className = 'toolbar-dropdown-menu';
+  iconDropdownMenu.className = 'toolbar-dropdown-menu' + (showIconLabels ? ' show-labels' : '');
+  
+  // Add toggle row inside turn dropdown
+  const turnToggleRow = document.createElement('div');
+  turnToggleRow.className = 'toolbar-dropdown-toggle-row';
+  
+  const turnToggleLabel = document.createElement('span');
+  turnToggleLabel.textContent = 'Icon labels';
+  
+  const turnLabelsToggle = document.createElement('button');
+  turnLabelsToggle.className = 'toolbar-labels-toggle' + (showIconLabels ? ' active' : '');
+  turnLabelsToggle.textContent = showIconLabels ? 'Hide' : 'Show';
+  turnLabelsToggle.type = 'button';
+  
+  turnToggleRow.appendChild(turnToggleLabel);
+  turnToggleRow.appendChild(turnLabelsToggle);
+  iconDropdownMenu.appendChild(turnToggleRow);
   
   commentIconOptions.forEach(option => {
     const iconBtn = document.createElement('button');
     iconBtn.className = 'toolbar-dropdown-item';
     // Handle both Font Awesome (fa-*) and Flaticon (fi-*) icons
     const iconClass = option.icon.startsWith('fi-') ? `fi ${option.icon}` : `fa-solid ${option.icon}`;
-    iconBtn.innerHTML = `<i class="${iconClass}"${option.color ? ` style="color: ${option.color};"` : ''}></i>`;
+    iconBtn.innerHTML = `<i class="${iconClass}"${option.color ? ` style="color: ${option.color};"` : ''}></i><span class="toolbar-dropdown-item-label">${option.title}</span>`;
     iconBtn.title = option.title;
     iconBtn.type = 'button';
     iconBtn.addEventListener('click', (e) => {
@@ -1415,6 +1450,36 @@ function showCommentEditor(turn, index) {
   
   iconDropdownContainer.appendChild(iconDropdownBtn);
   iconDropdownContainer.appendChild(iconDropdownMenu);
+  
+  // Shared toggle handler for both toggles
+  const toggleLabels = () => {
+    const currentState = localStorage.getItem('ChatWorkspace_showIconLabels') === 'true';
+    const newState = !currentState;
+    localStorage.setItem('ChatWorkspace_showIconLabels', newState.toString());
+    
+    // Update both dropdown menus
+    headingIconDropdownMenu.classList.toggle('show-labels', newState);
+    iconDropdownMenu.classList.toggle('show-labels', newState);
+    
+    // Update both toggle buttons
+    headingLabelsToggle.classList.toggle('active', newState);
+    turnLabelsToggle.classList.toggle('active', newState);
+    
+    // Update button text
+    const newText = newState ? 'Hide' : 'Show';
+    headingLabelsToggle.textContent = newText;
+    turnLabelsToggle.textContent = newText;
+  };
+  
+  headingLabelsToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleLabels();
+  });
+  
+  turnLabelsToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleLabels();
+  });
   
   toolbar.appendChild(collapsibleBtn);
   toolbar.appendChild(twoColBtn);

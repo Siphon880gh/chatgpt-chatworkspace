@@ -351,7 +351,7 @@ root.style.setProperty('--hover-preview-max-width', `${appConfig.hoverPreview.ma
   - **Heading Comment:** Displayed above role label, has own icon dropdown toolbar
   - **Turn Comment:** Displayed below summary text with HTML toolbar
 - Both sections have **🏷️ Icon Dropdown** toolbar:
-  - Dropdown menu with 20 colored icons organized in 4x5 grid
+  - Dropdown menu with 20+ colored icons organized in grid layout
   - **Purple icons:** Data operations (sparkles, pluck out, pluck in) from Flaticon
   - **Green icons:** Success/positive actions (check, heart, bolt, arrows) from Font Awesome
   - **Blue icons:** Informational (question, info, asterisk, star, lightbulb, bookmark, flag)
@@ -359,6 +359,11 @@ root.style.setProperty('--hover-preview-max-width', `${appConfig.hoverPreview.ma
   - Inserts colored icon HTML at beginning of comment
   - Supports both Font Awesome (fa-*) and Flaticon (fi-*) icon classes
   - Opening one dropdown closes the other to prevent overlap
+  - **Labels toggle:** Show/Hide button inside dropdown to toggle text labels next to icons
+    - Toggle row appears at top of dropdown with "Icon labels" label and Show/Hide button
+    - When labels enabled, dropdown shows 2-column layout with icon titles visible
+    - State persists via `ChatWorkspace_showIconLabels` in localStorage
+    - Both dropdowns share the same toggle state
 - Turn comment has additional toolbar buttons for inserting HTML snippets:
   - **▼ Collapsible:** Inserts `<details>/<summary>` structure
   - **⫿ Two Columns:** Inserts `.columns-2` grid layout
@@ -645,6 +650,10 @@ Content-Type: application/json
   - Supports Font Awesome 6.5.1 and Flaticon Uicons 2.6.0
   - Inserts icon HTML at beginning of comment for visual categorization
   - Opening one dropdown closes the other to prevent overlap
+  - **Labels toggle:** Show/Hide button inside dropdown to toggle text labels
+    - Toggle row at top of dropdown with "Icon labels" label and button
+    - 2-column layout when labels visible, 4-column grid when hidden
+    - Setting persists to localStorage (`ChatWorkspace_showIconLabels`)
 - Turn comment has additional toolbar buttons for HTML elements:
   - **Collapsible sections:** `<details>/<summary>` for expandable content
   - **Two-column layout:** `.columns-2` CSS grid
@@ -961,6 +970,7 @@ ChatWorkspace_{chatId}_comments  → { [index: number]: { heading: string, turn:
 ChatWorkspace_{chatId}_indents   → { [index: number]: number }  // indent level, 0 = no indent
 ChatWorkspace_{chatId}_notes     → { notes: string, lastUpdated: string }  // ISO timestamp
 ChatWorkspace_{chatId}_html      → string  // Original chat HTML for ?open= URL parameter
+ChatWorkspace_showIconLabels     → "true" | "false"  // Global setting for icon labels toggle
 ```
 
 ---
@@ -1126,7 +1136,7 @@ See `README.md` for user-facing roadmap. Developer considerations:
 - Print outline → `d-render-chat.js` (`printOutline`, late)
 - Hashing implementation → `c-hash-chat.js` (`hashChat`, throughout)
 - Comment system → `d-render-chat.js` (comment functions, `showCommentEditor`, `insertAtCursor`, middle-late)
-- Icon dropdown → `d-render-chat.js` (`showCommentEditor`, icon options arrays for both heading and turn, middle-late)
+- Icon dropdown → `d-render-chat.js` (`showCommentEditor`, icon options arrays for both heading and turn, labels toggle, middle-late)
 - Preview panel → `d-render-chat.js` (`showMessagePreview`, late-middle)
 - Notes system → `d-render-chat.js` (`loadChatNotes`, `saveChatNotes`, late) + `index.php` (notes section)
 - Clickable logo reset → `index.php` (header section)
@@ -1167,6 +1177,12 @@ item.addEventListener('click', (e) => {
 **File Version:** 2.0  
 **Project Status:** Active Development  
 **Recent Updates (Last 5 Commits):**
+- **Icon Labels Toggle:** Added Show/Hide toggle inside the icon dropdown to toggle text labels on icons
+  - Toggle row appears at top of dropdown with "Icon labels" label and Show/Hide button
+  - When enabled, displays icon title/alt text next to each icon in a 2-column layout
+  - State persists to localStorage (`ChatWorkspace_showIconLabels`)
+  - Both dropdowns (heading and turn) share the same toggle state
+  - Improves discoverability of icon meanings for users unfamiliar with the icons
 - **Turn Position Indicator:** Added subtle toast notification at bottom right when hovering over turns
   - Shows source icon (💬 Chat View, 🗒️ Outline), turn number (1-based), and role (User/Assistant)
   - Format: `💬 #1 · User` or `🗒️ #3 · Assistant`

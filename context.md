@@ -215,6 +215,7 @@ root.style.setProperty('--hover-preview-max-width', `${appConfig.hoverPreview.ma
 - Adds role labels (👤 User / 🤖 Assistant)
 - Adds collapse toggle button (⋮⋮) for each chat bubble
 - Adds copy button (📋) for each chat bubble to copy turn text
+- Adds scroll to outline button (⬇) for each chat bubble to navigate to outline
 - Sets z-index incrementally for proper layering of sticky buttons
 - Attempts to extract ChatGPT's native formatted HTML via `extractFormattedContent()`
 - Falls back to `formatContentWithCode()` for plain text/markdown parsing
@@ -231,6 +232,12 @@ root.style.setProperty('--hover-preview-max-width', `${appConfig.hoverPreview.ma
 - Provides visual feedback by changing button to ✅ with green background
 - Automatically resets button appearance after 2 seconds
 - Button is hidden when chat turn is collapsed
+
+**`scrollToOutlineItem(index)`**
+- Scrolls the outline panel to display the corresponding outline item for a chat turn
+- Uses `scrollIntoView()` with smooth behavior and center alignment
+- Adds temporary highlight effect (box-shadow and background color) for 1.5 seconds
+- Triggered by the ⬇ button on each chat turn
 
 **`setupScrollTracking()`**
 - Creates IntersectionObserver to track visible chat turns
@@ -545,16 +552,17 @@ Content-Type: application/json
 5. **Chat Turns (middle)** - Color-coded user/assistant, code blocks, markdown formatting
 6. **Collapsible Chat Bubbles (middle)** - Toggle button (sticky position), collapsed state, rotation animations
 7. **Copy Chat Turn Button (middle)** - Sticky positioned copy button, hover states, visual feedback
-8. **Markdown Styles (middle)** - Headers (h1-h6), lists (ul/ol/li), blockquotes, paragraphs, bold/italic
-9. **ChatGPT Data Attributes (middle)** - Spacing for `[data-start]`, `[data-is-last-node]` attributes
-10. **Outline Items (middle)** - Hover effects, editable summaries, icons, scroll-highlighting, role label cursor change
-11. **Outline Pair Groups (middle)** - Visual grouping of user+assistant pairs with subtle background and border
-12. **Comment System (middle-late)** - Display styles, editor modal, HTML element support (columns, collapsible)
-13. **Comment Toolbar (middle-late)** - Toolbar buttons for inserting HTML snippets, icon dropdown grid (4x5) for both heading and turn comments
-14. **Preview Panel (late)** - Fixed bottom, slide-up animation
-15. **Controls (late)** - Zoom buttons, resize handle, reset button, scroll to highlighted button
-16. **Hover Preview Tooltip (late)** - Glassmorphic popup, typing animation, blinking cursor, smart positioning, dynamic CSS variables
-17. **Responsive (end)** - Mobile breakpoints, stacked columns, hover preview width adjustment
+8. **Scroll to Outline Button (middle)** - Sticky positioned scroll button, hover states, positioned below copy button
+9. **Markdown Styles (middle)** - Headers (h1-h6), lists (ul/ol/li), blockquotes, paragraphs, bold/italic
+10. **ChatGPT Data Attributes (middle)** - Spacing for `[data-start]`, `[data-is-last-node]` attributes
+11. **Outline Items (middle)** - Hover effects, editable summaries, icons, scroll-highlighting, role label cursor change
+12. **Outline Pair Groups (middle)** - Visual grouping of user+assistant pairs with subtle background and border
+13. **Comment System (middle-late)** - Display styles, editor modal, HTML element support (columns, collapsible)
+14. **Comment Toolbar (middle-late)** - Toolbar buttons for inserting HTML snippets, icon dropdown grid (4x5) for both heading and turn comments
+15. **Preview Panel (late)** - Fixed bottom, slide-up animation
+16. **Controls (late)** - Zoom buttons, resize handle, reset button, scroll to highlighted button
+17. **Hover Preview Tooltip (late)** - Glassmorphic popup, typing animation, blinking cursor, smart positioning, dynamic CSS variables
+18. **Responsive (end)** - Mobile breakpoints, stacked columns, hover preview width adjustment
 
 **Design System:**
 - Primary gradient: `#667eea → #764ba2`
@@ -672,6 +680,21 @@ Content-Type: application/json
 - Button appears on hover with subtle background, scales on interaction
 
 **Storage:** None (ephemeral clipboard operation)
+
+### Feature: Scroll to Outline Item
+
+**Files:** `d-render-chat.js` (scrollToOutlineItem, renderChat), `styles.css` (scroll-to-outline-btn styles)
+**How:**
+- Scroll button (⬇) on each chat bubble using sticky positioning
+- Positioned below the copy button (third button in the vertical stack)
+- Clicking scrolls the outline panel to the corresponding outline item
+- Uses `scrollIntoView()` with smooth animation and center alignment
+- Adds temporary highlight effect (box-shadow + background color) for 1.5 seconds
+- Button positioned left of content, floats with collapse and copy buttons
+- Hidden when chat turn is collapsed
+- Button appears on hover with subtle background, scales on interaction
+
+**Storage:** None (UI navigation action)
 
 ### Feature: Scroll-Based Outline Highlighting
 
@@ -1074,6 +1097,7 @@ See `README.md` for user-facing roadmap. Developer considerations:
 - Chat rendering logic → `d-render-chat.js` (`renderChat`, `extractFormattedContent`, early)
 - Collapsible chat bubbles → `d-render-chat.js` (`toggleChatTurnCollapse`, middle)
 - Copy chat turn → `d-render-chat.js` (`copyChatTurnText`, middle)
+- Scroll to outline item → `d-render-chat.js` (`scrollToOutlineItem`, middle-late)
 - Scroll tracking → `d-render-chat.js` (`setupScrollTracking`, `updateOutlineHighlight`, early-middle)
 - Scroll to highlighted → `d-render-chat.js` (`scrollToHighlighted`, middle-late)
 - Outline pair grouping → `d-render-chat.js` (`renderOutline`, middle)
@@ -1119,10 +1143,15 @@ item.addEventListener('click', (e) => {
 
 ---
 
-**Last Updated:** 2025-11-09  
-**File Version:** 1.8  
+**Last Updated:** 2025-12-29  
+**File Version:** 1.9  
 **Project Status:** Active Development  
 **Recent Updates (Last 5 Commits):**
+- **Scroll to Outline Button:** Added third button (⬇) to each chat turn that scrolls to the corresponding outline item
+  - Positioned below copy button using sticky positioning
+  - Smooth scroll animation with temporary highlight effect on target outline item
+  - Hidden when chat turn is collapsed
+  - Same styling pattern as collapse and copy buttons
 - **Hover Preview with Typing Animation:** Added configurable hover preview feature
   - Triggers when hovering over role labels (User/Assistant text)
   - Shows first 150 characters of turn content with animated typing effect

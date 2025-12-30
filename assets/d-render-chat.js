@@ -182,6 +182,17 @@ function renderChat(turns) {
       copyChatTurnText(index, turn);
     });
 
+    // Scroll to outline button
+    const scrollToOutlineBtn = document.createElement('button');
+    scrollToOutlineBtn.className = 'scroll-to-outline-btn';
+    scrollToOutlineBtn.innerHTML = '⬇';
+    scrollToOutlineBtn.title = 'Scroll to outline';
+    scrollToOutlineBtn.setAttribute('data-turn-index', index);
+    scrollToOutlineBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      scrollToOutlineItem(index);
+    });
+
     const label = document.createElement('div');
     label.className = 'turn-label';
     label.textContent = turn.type === 'user' ? '👤 User' : '🤖 Assistant';
@@ -200,6 +211,7 @@ function renderChat(turns) {
 
     turnDiv.appendChild(collapseBtn);
     turnDiv.appendChild(copyBtn);
+    turnDiv.appendChild(scrollToOutlineBtn);
     turnDiv.appendChild(label);
     turnDiv.appendChild(content);
     chatContent.appendChild(turnDiv);
@@ -2012,6 +2024,33 @@ function scrollToHighlighted() {
       block: 'center',
       inline: 'nearest'
     });
+  }
+}
+
+/**
+ * Scroll to a specific outline item by turn index
+ */
+function scrollToOutlineItem(index) {
+  const outlineItems = document.querySelectorAll('.outline-item');
+  if (index >= 0 && index < outlineItems.length) {
+    const targetItem = outlineItems[index];
+    
+    // Scroll the outline item into view with smooth animation
+    targetItem.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center',
+      inline: 'nearest'
+    });
+    
+    // Add a brief highlight effect
+    targetItem.style.transition = 'box-shadow 0.3s, background-color 0.3s';
+    targetItem.style.boxShadow = '0 0 0 4px rgba(102, 126, 234, 0.4)';
+    targetItem.style.backgroundColor = 'rgba(102, 126, 234, 0.15)';
+    
+    setTimeout(() => {
+      targetItem.style.boxShadow = '';
+      targetItem.style.backgroundColor = '';
+    }, 1500);
   }
 }
 
